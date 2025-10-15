@@ -1,8 +1,8 @@
-<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (배너 제거 · 내부 스크롤 제거 A형 · 레이아웃/버그 FIX) -->
+<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (Iteration 표기 · 내부 스크롤 B형 · 통합본) -->
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700;900&display=swap');
 
-  html, body { margin:0; overflow-x:hidden; } /* 페이지 세로 스크롤은 유지 */
+  html, body { margin:0; overflow-x:hidden; }
   .ml, .ml *{font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; box-sizing:border-box}
   .ml{
     --navy:#0f2e59; --cobalt:#174a8c; --text:#0F172A; --dim:#475569; --card:#fff; --br:#e6ecf4; --r-xl:20px;
@@ -49,14 +49,16 @@
   @media (max-width:1100px){ .ml .results-grid{grid-template-columns:1fr 1fr} }
   @media (max-width:760px){ .ml .results-grid{grid-template-columns:1fr} }
 
-  /* ★ A형: 내부 세로 스크롤 제거, 가로만 필요 시 스크롤 */
+  /* ★ 내부 스크롤 B형: 표 안에서 세로 스크롤 허용 */
   .ml .table-wrap{
     border:1px solid #e9eef5; border-radius:14px;
-    overflow-x:auto; overflow-y:visible; display:block;
+    overflow-y:auto; overflow-x:auto;
+    max-height:420px; /* 필요에 맞게 높이 조정 가능 */
+    display:block;
     -webkit-overflow-scrolling:touch;
   }
-  .ml table{width:100%; border-collapse:separate; border-spacing:0; font-size:14px; min-width:480px}
-  /* sticky 제거 → 임베드 충돌 방지 */
+  .ml table{width:100%; border-collapse:separate; border-spacing:0; font-size:14px; min-width:560px}
+  /* sticky 비활성(임베드 충돌 방지) */
   .ml thead th{background:#f8fafc;color:#2b3345;font-weight:800;text-align:left;padding:10px;border-bottom:1px solid #e9eef5; position:static}
   .ml tbody td{padding:10px;border-top:1px solid #eef2f7; word-break:break-word}
 
@@ -75,7 +77,6 @@
   .ml .caret{font-weight:900; opacity:.5}
   .ml .report .content{padding:12px 16px 16px; color:#0f172a; line-height:1.75; font-size:14px}
 
-  /* 점프 버튼 */
   .ml .jump{display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 0}
 </style>
 
@@ -115,7 +116,7 @@
               <option value="reg">Regression</option>
             </select>
           </div>
-          <div><label>Epochs</label><input id="ml-epochs" type="number" value="30" min="1"></div>
+          <div><label>Iterations</label><input id="ml-epochs" type="number" value="30" min="1"></div>
           <div><label>Batch Size</label><input id="ml-batch" type="number" value="32" min="1"></div>
         </div>
 
@@ -187,12 +188,12 @@
         <div id="ml-cm" class="cm"></div>
       </div>
 
-      <!-- Feature Importance -->
+      <!-- 설명변수 중요도 -->
       <div class="panel">
-        <div class="h2" style="font-size:16px;margin-bottom:6px">Feature Importance</div>
+        <div class="h2" style="font-size:16px;margin-bottom:6px">설명변수 중요도</div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Feature</th><th>Score</th></tr></thead>
+            <thead><tr><th>설명변수</th><th>Score</th></tr></thead>
             <tbody id="ml-vip"></tbody>
           </table>
         </div>
@@ -209,7 +210,7 @@
                 <th style="min-width:120px">실제값</th>
                 <th style="min-width:120px">예측값</th>
                 <th style="min-width:140px">예측확률/예측치</th>
-                <th>특징 (상위 몇 개)</th>
+                <th>설명변수 (상위 몇 개)</th>
               </tr>
             </thead>
             <tbody id="ml-preview"></tbody>
@@ -234,9 +235,9 @@
         </div>
       </details>
       <details>
-        <summary>특징 중요도 산출 방식 <span class="caret">▾</span></summary>
+        <summary>설명변수 중요도 산출 방식 <span class="caret">▾</span></summary>
         <div class="content">
-          분류(Logistic): 절대 가중치 | 회귀(Linear): 절대 회귀계수 기준으로 정렬해 상위 항목을 표기합니다.
+          분류(Logistic): 표준화 후 가중치의 절대값 \(|w|\) 기준 정렬 · 회귀(Linear): 표준화 후 회귀계수 절대값 기준 정렬.
         </div>
       </details>
     </div>
@@ -297,40 +298,42 @@
     return { mu,sd,transform };
   }
 
-  /* ---------- models ---------- */
+  /* ---------- models (GD 기반; iteration 용어 사용) ---------- */
   const dot=(a,b)=>{let s=0; for(let i=0;i<a.length;i++) s+=(a[i]||0)*(b[i]||0); return s; };
   const sigmoid=(z)=> 1/(1+Math.exp(-z));
 
-  function fitLinear(X,y,epochs=200,lr=0.05,l2=1e-4,cb){
+  // Linear Regression (MSE) — L2(작게) + GD
+  function fitLinear(X,y,iterations=200,lr=0.05,l2=1e-4,cb){
     const n=X.length,p=X[0].length; const w=Array(p).fill(0); let b=0;
-    for(let ep=1;ep<=epochs;ep++){
+    for(let it=1;it<=iterations;it++){
       let db=0; const dw=Array(p).fill(0);
       for(let i=0;i<n;i++){ const yhat=dot(w,X[i])+b; const e=yhat-y[i]; db+=e; for(let j=0;j<p;j++) dw[j]+=e*X[i][j]; }
       for(let j=0;j<p;j++) w[j]-=lr*((dw[j]/n)+l2*w[j]); b-=lr*(db/n);
-      if(cb && ep%10===0) cb(ep);
+      if(cb && it%10===0) cb(it);
     }
     const predict=(Z)=> Z.map(r=> dot(w,r)+b);
-    return { w,b,predict };
+    return { w,b,predict, iterations };
   }
 
-  function fitLogistic(X,y,epochs=400,lr=0.05,l2=1e-4,cb){
+  // Logistic Regression (Cross-Entropy) — L2(작게) + GD
+  function fitLogistic(X,y,iterations=400,lr=0.05,l2=1e-4,cb){
     const n=X.length,p=X[0].length; const w=Array(p).fill(0); let b=0;
-    for(let ep=1;ep<=epochs;ep++){
+    for(let it=1;it<=iterations;it++){
       let db=0; const dw=Array(p).fill(0);
       for(let i=0;i<n;i++){ const z=dot(w,X[i])+b; const p1=sigmoid(z); const e=p1-y[i]; db+=e; for(let j=0;j<p;j++) dw[j]+=e*X[i][j]; }
       for(let j=0;j<p;j++) w[j]-=lr*((dw[j]/n)+l2*w[j]); b-=lr*(db/n);
-      if(cb && ep%20===0) cb(ep);
+      if(cb && it%20===0) cb(it);
     }
     const predictProba=(Z)=> Z.map(r=> sigmoid(dot(w,r)+b));
     const predict=(Z,thr=0.5)=> predictProba(Z).map(p=> p>=thr?1:0);
-    return { w,b,predictProba,predict };
+    return { w,b,predictProba,predict, iterations };
   }
 
   const mse=(y,yhat)=>{let s=0; for(let i=0;i<y.length;i++){ const e=yhat[i]-y[i]; s+=e*e; } return s/Math.max(1,y.length); };
   function binMetrics(yTrue,yProb,thr=0.5){
     const yPred=yProb.map(p=> p>=thr?1:0);
     let tp=0,tn=0,fp=0,fn=0;
-    for(let i=0;i<yTrue.length;i++){   /* ← 오타 FIX */
+    for(let i=0;i<yTrue.length;i++){           /* ← 정확한 루프 */
       const yt=yTrue[i], yp=yPred[i];
       if(yt===1 && yp===1) tp++;
       else if(yt===0 && yp===0) tn++;
@@ -380,12 +383,12 @@
 
   /* ---------- uploader ---------- */
   chooseBtn.addEventListener('click', ()=> fInput.click());
-  fInput.addEventListener('change', handleFile);
   $('#ml-drop').addEventListener('dragover', (e)=> e.preventDefault());
   $('#ml-drop').addEventListener('drop', (e)=>{
     e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files[0]){ fInput.files=e.dataTransfer.files; handleFile(); }
   });
+  fInput.addEventListener('change', handleFile);
 
   function handleFile(){
     const file = fInput.files && fInput.files[0]; if(!file) return;
@@ -447,12 +450,12 @@
   function updateSplitLabel(){ const v=Number(splitRange.value); splitLabel.textContent=`${v}%`; META.splitRatio=v/100; }
   splitRange.addEventListener('input', updateSplitLabel);
 
-  thresInput.addEventListener('input', ()=>{
+  $('#ml-thres').addEventListener('input', ()=>{
     const thr = Number(thresInput.value)/100; thresLabel.textContent = thr.toFixed(2);
     if (META.isClassification && META._lastProb) applyClassificationOutputs(META._lastYtrue, META._lastProb, thr);
   });
 
-  clearBtn.addEventListener('click', ()=>{
+  $('#ml-clear').addEventListener('click', ()=>{
     RAW=null; META={ headers:[], numericCols:[], catCols:[], impute:{}, chosenTarget:null, chosenFeatures:[], task:'auto',
       mapTarget:null, invMapTarget:null, scaler:null, model:null, isClassification:false, splitRatio:0.8 };
     $('#ml-file').value=''; $('#ml-file-name').textContent='CSV 파일을 선택하거나 드롭하세요'; $('#ml-file-hint').textContent='';
@@ -462,8 +465,9 @@
     log('대기');
   });
 
-  /* ---------- train ---------- */
   $('#ml-task').addEventListener('change', ()=> META.task = $('#ml-task').value);
+
+  /* ---------- train ---------- */
   $('#ml-train').addEventListener('click', ()=>{
     try{
       if(!RAW) return;
@@ -500,31 +504,30 @@
       ntestBadge.textContent = yte.length;
 
       META.isClassification = isClassification;
+      const iterations = Math.max(20, Math.min(2000, parseInt($('#ml-epochs').value||0,10)||30));
+
       if (isClassification){
-        const epochs = Math.max(20, Math.min(2000, parseInt($('#ml-epochs').value||0,10)||30));
         log('분류 학습 중…');
-        const model = fitLogistic(Xtr, ytr, epochs, 0.08, 1e-4, (ep)=> pText.textContent=`분류 학습 ${ep}/${epochs}`);
+        const model = fitLogistic(Xtr, ytr, iterations, 0.08, 1e-4, (it)=> pText.textContent=`분류 반복 ${it}/${iterations}`);
         const prob = model.predictProba(Xte);
         META._lastProb=prob; META._lastYtrue=yte; META.model=model; META.scaler=scaler;
         thresWrap.style.display=''; thresSuggest.textContent='0.50'; thresInput.value=50; thresLabel.textContent='0.50';
-        applyClassificationOutputs(yte, prob, 0.5, {features, Xte, inv:META.invMapTarget});
+        applyClassificationOutputs(yte, prob, 0.5, {features, inv:META.invMapTarget});
         renderVIP(features, model.w);
-        summaryBox.textContent = `모형: Logistic (epochs=${epochs}) · 특징 ${features.length} · 테스트 ${yte.length}`;
+        summaryBox.textContent = `모형: Logistic (iterations=${iterations}) · 설명변수 ${features.length}개 · 테스트 샘플 ${yte.length}개`;
       }else{
-        const epochs = Math.max(20, Math.min(2000, parseInt($('#ml-epochs').value||0,10)||30));
         log('회귀 학습 중…');
-        const model = fitLinear(Xtr, ytr, epochs, 0.05, 1e-4, (ep)=> pText.textContent=`회귀 학습 ${ep}/${epochs}`);
+        const model = fitLinear(Xtr, ytr, iterations, 0.05, 1e-4, (it)=> pText.textContent=`회귀 반복 ${it}/${iterations}`);
         const pred = model.predict(Xte);
         META.model=model; META.scaler=scaler;
         thresWrap.style.display='none';
         renderRegMetrics(yte, pred);
         renderPreviewRegression(yte, pred, features);
         renderVIP(features, model.w);
-        summaryBox.textContent = `모형: Linear Regression (epochs=${epochs}) · 특징 ${features.length} · 테스트 ${yte.length}`;
+        summaryBox.textContent = `모형: Linear Regression (iterations=${iterations}) · 설명변수 ${features.length}개 · 테스트 샘플 ${yte.length}개`;
       }
 
       log('완료'); pWrap.style.display='none';
-      // 결과로 스크롤 포커싱(미리보기 보이도록)
       document.querySelector('#ml-preview-anchor')?.scrollIntoView({behavior:'smooth', block:'start'});
     }catch(err){
       console.error(err); log('오류: ' + (err?.message || err)); pWrap.style.display='none';
