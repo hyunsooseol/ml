@@ -1,4 +1,4 @@
-<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (결과 하단 가로배치 · ROC-AUC · 임곗값 슬라이더) -->
+<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (업로더: 아이콘+문구+오른쪽 버튼 스타일, ROC-AUC+임곗값 슬라이더) -->
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700;900&display=swap');
   .ml, .ml *{font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; box-sizing:border-box}
@@ -22,12 +22,23 @@
   .ml .btn{appearance:none;border:1px solid #e5e7eb;background:#fff;border-radius:12px;padding:10px 14px;font-weight:800;font-size:14px;cursor:pointer;transition:.18s; text-decoration:none}
   .ml .btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(0,0,0,.08)}
   .ml .btn.primary{color:#fff;background:linear-gradient(90deg,#0f2e59,#174a8c);border:none}
+  .ml .btn.ghost{background:#fff;border-color:#e2e8f0}
+  .ml .btn.ghost:hover{box-shadow:0 6px 16px rgba(2,6,23,.06)}
 
-  /* 업로더: 전체 클릭/드롭, 네이티브 버튼 숨김 */
-  .ml .uploader{position:relative;border:1px dashed #cbd5e1;border-radius:14px;background:#fafcff;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer}
-  .ml .uploader input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+  /* 업로더: 아이콘+문구(좌), 파일선택 버튼(우) */
+  .ml .uploader{
+    position:relative;border:1px dashed #cbd5e1;border-radius:14px;background:#fafcff;padding:14px 16px;
+    display:flex;align-items:center;justify-content:space-between;gap:12px
+  }
+  .ml .uploader-left{display:flex;align-items:center;gap:10px}
+  .ml .uploader-icon{
+    width:22px;height:22px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;
+    background:#eef6ff;border:1px solid #dbeafe
+  }
+  .ml .uploader strong{font-weight:800}
+  .ml .uploader small{color:#64748b}
 
-  /* 입력 패널 */
+  /* 입력 패널 & 배지 */
   .ml .panel{border:1px solid var(--br);border-radius:14px;padding:14px}
   .ml .controls{display:grid;grid-template-columns:1fr;gap:16px}
   .ml .badges{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 0}
@@ -64,14 +75,25 @@
     <div class="h2">분석 시작</div>
     <p class="sub">CSV를 선택하면 아래 설정이 활성화됩니다. (데이터는 브라우저에서만 처리)</p>
 
-    <!-- 업로더 (버튼 제거, 전체 클릭/드롭) -->
-    <label class="uploader" id="ml-drop">
-      <div style="display:flex;align-items:center;gap:12px">
-        <strong id="ml-file-name">CSV 파일을 선택하거나 드롭하세요</strong>
-        <span class="sub" id="ml-file-hint"></span>
+    <!-- 업로더 (좌: 아이콘+문구, 우: 파일 선택 버튼) -->
+    <div class="uploader" id="ml-drop">
+      <div class="uploader-left">
+        <span class="uploader-icon" aria-hidden="true">
+          <!-- 업로드 아이콘 (SVG) -->
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 16V4m0 0l-4 4m4-4l4 4" stroke="#0f2e59" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 16v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3" stroke="#0f2e59" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <div>
+          <strong id="ml-file-name">CSV 파일을 선택하거나 드롭하세요</strong><br>
+          <small id="ml-file-hint"></small>
+        </div>
       </div>
-      <input id="ml-file" type="file" accept=".csv,text/csv" />
-    </label>
+      <button type="button" class="btn ghost" id="ml-choose">파일 선택</button>
+      <!-- 네이티브 파일 입력: 숨김 -->
+      <input id="ml-file" type="file" accept=".csv,text/csv" style="display:none" />
+    </div>
 
     <div class="log" id="ml-log">상태: 대기</div>
 
@@ -126,7 +148,7 @@
   <div class="card results">
     <div class="h2">결과</div>
 
-    <!-- ✅ 임곗값 슬라이더: 분류일 때만 노출 -->
+    <!-- 임곗값 슬라이더(분류일 때만 노출) -->
     <div id="ml-thres-wrap" class="panel" style="display:none;margin-bottom:12px">
       <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
         <div style="min-width:220px">
@@ -193,9 +215,11 @@
 <script>
 (function(){
   const $=s=>document.querySelector(s);
-  const log=(m)=>{ $('#ml-log').textContent = '상태: ' + m; };
+  const log=m=>{$('#ml-log').textContent='상태: '+m};
 
-  const file=$('#ml-file'), fname=$('#ml-file-name'), fhint=$('#ml-file-hint');
+  const file=$('#ml-file'), chooseBtn=$('#ml-choose'), drop=$('#ml-drop');
+  const fname=$('#ml-file-name'), fhint=$('#ml-file-hint');
+
   const targetSel=$('#ml-target'), predsBox=$('#ml-preds');
   const taskSel=$('#ml-task'), epochsEl=$('#ml-epochs'), batchEl=$('#ml-batch'), splitEl=$('#ml-split'), splitLbl=$('#ml-split-label');
   const trainBtn=$('#ml-train'), clearBtn=$('#ml-clear');
@@ -204,9 +228,9 @@
   const thWrap=$('#ml-thres-wrap'), thEl=$('#ml-thres'), thLbl=$('#ml-thres-label'), thSug=$('#ml-thres-suggest');
 
   let DATA=null, HEADERS=[];
-  let CLF_INFO=null; // {ytrue, prob, testIdxArr, suggestTh}
+  let CLF_INFO=null; // {ytrue, prob, testIdxArr, auc, suggestTh}
 
-  splitEl.addEventListener('input', e=> splitLbl.textContent = e.target.value + '%');
+  splitEl?.addEventListener('input', e=> splitLbl.textContent = e.target.value + '%');
 
   function resetAll(){
     DATA=null; HEADERS=[]; CLF_INFO=null;
@@ -219,17 +243,23 @@
     trainBtn.disabled=true; clearBtn.disabled=true;
     log('대기');
   }
-  $('#ml-clear').addEventListener('click', ()=>{ file.value=''; resetAll(); });
+  $('#ml-clear')?.addEventListener('click', ()=>{ file.value=''; resetAll(); });
   resetAll();
 
+  // ▶ 파일 선택 트리거
+  chooseBtn.addEventListener('click', ()=> file.click());
+  // 드롭존 아무 곳 클릭해도 파일창 열기 (버튼 영역 제외해도 괜찮지만 일단 허용)
+  drop.addEventListener('click', e=>{ if(e.target.id!=='ml-choose') file.click(); });
+
   // 드래그&드롭
-  const drop=$('#ml-drop');
   ;['dragenter','dragover','dragleave','drop'].forEach(ev=> drop.addEventListener(ev, e=>{e.preventDefault();e.stopPropagation();}));
   drop.addEventListener('drop', (e)=>{ const f=e.dataTransfer.files?.[0]; if(f){ handleFile(f); } });
+
+  // 파일 선택
   file.addEventListener('change', ()=>{ const f=file.files?.[0]; if(f){ handleFile(f); } });
 
   function handleFile(f){
-    fname.textContent=f.name; fhint.textContent='읽는 중…'; log('CSV 파싱 중 (worker:false)');
+    fname.textContent=f.name; fhint.textContent='읽는 중…'; log('CSV 파싱 중');
     Papa.parse(f, {
       header:true, dynamicTyping:true, skipEmptyLines:'greedy',
       delimiter:'', encoding:'UTF-8',
@@ -308,7 +338,7 @@
   }
   const yVec=(rows,t)=> rows.map(r=> r[t]);
 
-  // 간단 Task 추론: 숫자 3종 이상 → 회귀, 그 외(문자/이진 숫자) → 이진분류
+  // Task 추론: 숫자 3종 이상 → 회귀, 그 외 → 이진 분류
   function inferTask(y){
     const u=[...new Set(y.filter(v=> v!==''&&v!=null))];
     const allNum=u.every(v=> typeof v==='number');
@@ -316,7 +346,7 @@
     return u.length > 2 ? 'reg' : 'bincls';
   }
 
-  // ROC-AUC 계산(이진)
+  // ROC-AUC (이진)
   function rocAUC(y, p){
     const pairs = p.map((s,i)=>({s, y:y[i]})).sort((a,b)=>b.s-a.s);
     let tp=0, fp=0, fn=y.filter(v=>v===1).length, tn=y.length-fn;
@@ -325,18 +355,17 @@
       if(r.s!==prev){
         const tpr = tp/Math.max(1, fn+tp);
         const fpr = fp/Math.max(1, fp+tn);
-        auc += (fpr - fprPrev) * (tpr + tprPrev) / 2; // trapz
+        auc += (fpr - fprPrev) * (tpr + tprPrev) / 2;
         fprPrev=fpr; tprPrev=tpr; prev=r.s;
       }
       if(r.y===1){ tp++; fn--; } else { fp++; tn--; }
     }
-    const tpr = tp/Math.max(1, fn+tp);
-    const fpr = fp/Math.max(1, fp+tn);
+    const tpr = tp/Math.max(1, fn+tp), fpr = fp/Math.max(1, fp+tn);
     auc += (fpr - fprPrev) * (tpr + tprPrev) / 2;
     return Math.max(0, Math.min(1, auc));
   }
 
-  // 추천 임곗값(Youden J: TPR-FPR 최대)
+  // Youden J로 추천 임곗값
   function suggestThreshold(y, p){
     const uniq = Array.from(new Set(p)).sort((a,b)=>a-b);
     let bestT=0.5, bestJ=-1;
@@ -357,10 +386,9 @@
     return bestT;
   }
 
-  // 임곗값 적용 후 뷰 업데이트(분류)
   async function updateClfViews(th){
     if(!CLF_INFO) return;
-    const {ytrue, prob, testIdxArr} = CLF_INFO;
+    const {ytrue, prob, testIdxArr, auc} = CLF_INFO;
     const yhat = prob.map(v=> v>=th?1:0);
 
     let tp=0,tn=0,fp=0,fn=0;
@@ -384,7 +412,7 @@
        <tr><td>Recall</td><td>${rec.toFixed(3)}</td></tr>
        <tr><td>F1</td><td>${f1.toFixed(3)}</td></tr>
        <tr><td>Balanced Accuracy</td><td>${balAcc.toFixed(3)}</td></tr>
-       <tr><td>ROC-AUC</td><td>${CLF_INFO.auc.toFixed(3)}</td></tr>
+       <tr><td>ROC-AUC</td><td>${auc.toFixed(3)}</td></tr>
        <tr><td>Positive rate (test)</td><td>${posRate.toFixed(3)}</td></tr>
        <tr><td>Test N</td><td>${yhat.length}</td></tr>`;
 
@@ -411,13 +439,7 @@
       }
     }
   }
-
-  // 슬라이더 이벤트
-  thEl.addEventListener('input', ()=> {
-    const th = (+thEl.value)/100;
-    thLbl.textContent = th.toFixed(2);
-    updateClfViews(th);
-  });
+  thEl.addEventListener('input', ()=>{ const th=(+thEl.value)/100; thLbl.textContent=th.toFixed(2); updateClfViews(th); });
 
   $('#ml-train').addEventListener('click', async ()=>{
     if(!DATA){ alert('CSV를 먼저 불러오세요.'); return; }
@@ -466,7 +488,6 @@
     const pred=model.predict(Xte);
     ntestEl.textContent=(Xte.shape[0]||0).toLocaleString();
 
-    // 예측/평가
     if(task==='bincls'){
       const prob=(await pred.array()).map(v=>v[0]);
       const ytrue=(await yte.array()).map(v=>v[0]);
@@ -474,7 +495,6 @@
       const auc = rocAUC(ytrue, prob);
       const suggest = suggestThreshold(ytrue, prob);
 
-      // 전역 저장 + 임곗값 UI 노출
       CLF_INFO={ytrue, prob, testIdxArr, auc, suggestTh:suggest};
       thWrap.style.display='block';
       thSug.textContent = suggest.toFixed(2);
@@ -489,7 +509,6 @@
       thEl.value = 50; thLbl.textContent='0.50';
       await updateClfViews(0.5);
       log('평가 완료(분류)');
-
     } else {
       const p=(await pred.array()).map(v=>v[0]); const ytrue=(await yte.array()).map(v=>v[0]);
       const mse=p.reduce((s,v,i)=> s+(v-ytrue[i])**2,0)/Math.max(1,p.length);
@@ -520,7 +539,7 @@
       // 변수 중요도
       const w0=model.getWeights()[0];
       const arr=await w0.abs().sum(1).array();
-      const vip=predCols.map((c,i)=>({name:c,score:(arr[i]||0)})).sort((a,b)=>b.score-a.score).slice(0,20);
+      const vip=predCols.map((c,i)=>({name:c,score:(arr[i]||0)})).sort((a,b)=>b.score-a-score).slice(0,20);
       vipT.innerHTML=vip.map(r=>`<tr><td>${String(r.name).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}</td><td>${r.score.toFixed(3)}</td></tr>`).join('');
 
       log('평가 완료(회귀)');
