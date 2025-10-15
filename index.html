@@ -1,4 +1,4 @@
-<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (업로더 개선 + ROC-AUC/임곗값 + 논문 보고용 접기 섹션) -->
+<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (배너 제거 버전) -->
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700;900&display=swap');
 
@@ -9,14 +9,8 @@
     --navy:#0f2e59; --cobalt:#174a8c; --text:#0F172A; --dim:#475569; --card:#fff; --br:#e6ecf4; --r-xl:20px;
     overflow-x:clip;
   }
-  .ml .hero{max-width:1120px;margin:24px auto 32px;padding:52px 22px 46px;color:#fff;text-align:center;border-radius:var(--r-xl);
-    background:radial-gradient(900px 380px at 10% -20%, rgba(23,74,140,.35), transparent 60%),
-               radial-gradient(800px 420px at 100% 0%, rgba(0,178,255,.16), transparent 60%),
-               linear-gradient(160deg, var(--navy) 0%, var(--cobalt) 100%)}
-  .ml .hero h1{margin:0 0 8px;font-size:28px;font-weight:900}
-  .ml .hero p{margin:0;font-size:15.5px;opacity:.95}
 
-  .ml .card{background:var(--card);border:1px solid var(--br);border-radius:var(--r-xl);max-width:1160px;margin:0 auto 22px;padding:20px 22px;color:var(--text);
+  .ml .card{background:var(--card);border:1px solid var(--br);border-radius:var(--r-xl);max-width:1160px;margin:24px auto 22px;padding:20px 22px;color:var(--text);
     box-shadow:0 10px 32px rgba(16,24,40,.08)}
   .ml .h2{margin:0 0 14px;font-size:20px;font-weight:800;color:var(--navy)}
   .ml .sub{color:var(--dim);font-size:14px}
@@ -82,12 +76,7 @@
 </style>
 
 <section class="ml" id="ml-app">
-  <div class="hero">
-    <h1>AI 머신러닝 스튜디오</h1>
-    <p>브라우저에서 실행되는 신경망 기반 AutoML — CSV만 업로드하면 AI가 자동으로 학습·예측 결과를 제시합니다</p>
-  </div>
-
-  <!-- 입력/설정 카드 -->
+  <!-- 입력/설정 카드 (배너 제거 후 바로 시작) -->
   <div class="card">
     <div class="h2">분석 시작</div>
     <p class="sub">CSV를 선택하면 아래 설정이 활성화됩니다. (데이터는 브라우저에서만 처리)</p>
@@ -639,4 +628,3 @@
   });
 })();
 </script>
-
