@@ -1,4 +1,4 @@
-<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (로컬 CSV 업로드 · worker 비활성 · 상태 로그) -->
+<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (로컬 CSV 업로드 · worker 비활성 · 상태 로그 · 영어 옵션 라벨) -->
 
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700;900&display=swap');
@@ -16,7 +16,7 @@
   .ml .sub{color:var(--dim);font-size:14px}
   .ml .uploader{position:relative;border:1px dashed #cbd5e1;border-radius:14px;background:#fafcff;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:12px}
   .ml .uploader input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
-  .ml .btn{appearance:none;border:1px solid #e5e7eb;background:#fff;border-radius:12px;padding:10px 14px;font-weight:800;font-size:14px;cursor:pointer;transition:.18s}
+  .ml .btn{appearance:none;border:1px solid #e5e7eb;background:#fff;border-radius:12px;padding:10px 14px;font-weight:800;font-size:14px;cursor:pointer;transition:.18s; text-decoration:none}
   .ml .btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(0,0,0,.08)}
   .ml .btn.primary{color:#fff;background:linear-gradient(90deg,#0f2e59,#174a8c);border:none}
   .ml .grid{display:grid;grid-template-columns:1.4fr .8fr;gap:20px}
@@ -36,6 +36,8 @@
   .ml thead th{position:sticky;top:0;background:#f8fafc;color:#2b3345;font-weight:800;text-align:left;padding:10px;border-bottom:1px solid #e9eef5}
   .ml tbody td{padding:10px;border-top:1px solid #eef2f7}
   .ml .log{margin-top:10px;border:1px dashed #cbd5e1;border-radius:12px;background:#fbfdff;padding:10px;font-size:12px;color:#0b1220;white-space:pre-wrap}
+  /* CTA center */
+  .ml .cta-center{display:flex;justify-content:center;align-items:center;margin-top:14px}
 </style>
 
 <section class="ml" id="ml-app">
@@ -48,6 +50,7 @@
     <div class="h2">분석 시작</div>
     <p class="sub">CSV를 선택하면 아래 설정이 활성화됩니다. (데이터는 브라우저에서만 처리)</p>
 
+    <!-- 업로더 -->
     <label class="uploader" id="ml-drop">
       <div style="display:flex;align-items:center;gap:12px">
         <strong id="ml-file-name">CSV 파일을 선택하거나 드롭하세요</strong>
@@ -60,35 +63,38 @@
       <input id="ml-file" type="file" accept=".csv,text/csv">
     </label>
 
+    <!-- 상태 로그 -->
     <div class="log" id="ml-log">상태: 대기</div>
 
     <div class="grid" style="margin-top:18px">
+      <!-- 좌 -->
       <div class="panel">
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
-          <div><label>문제 유형</label>
+          <div>
+            <label>Task</label>
             <select id="ml-task">
-              <option value="auto">자동</option>
-              <option value="bincls">이진분류</option>
-              <option value="reg">회귀</option>
+              <option value="auto">Auto</option>
+              <option value="bincls">Binary Classification</option>
+              <option value="reg">Regression</option>
             </select>
           </div>
-          <div><label>에포크</label><input id="ml-epochs" type="number" value="30" min="1"></div>
-          <div><label>배치 크기</label><input id="ml-batch" type="number" value="32" min="1"></div>
+          <div><label>Epochs</label><input id="ml-epochs" type="number" value="30" min="1"></div>
+          <div><label>Batch Size</label><input id="ml-batch" type="number" value="32" min="1"></div>
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
           <div>
-            <label>학습/검증 분할</label>
+            <label>Train/Test Split</label>
             <input id="ml-split" type="range" min="50" max="90" value="80">
             <div style="display:flex;justify-content:space-between;font-size:12px;color:#64748b">
               <span>Train</span><span id="ml-split-label">80%</span><span>Test</span>
             </div>
           </div>
-          <div><label>목표변수(타깃)</label><select id="ml-target"></select></div>
+          <div><label>Target</label><select id="ml-target"></select></div>
         </div>
 
         <div style="margin-top:12px">
-          <label>특징 변수(선택 안 하면 타깃 제외 모두)</label>
+          <label>Features (if empty = all except target)</label>
           <div id="ml-preds" class="chips"></div>
         </div>
 
@@ -100,6 +106,7 @@
         <div id="ml-progress" class="sub" style="margin-top:8px;display:none">학습 중… <span id="ml-ptext"></span></div>
       </div>
 
+      <!-- 우 -->
       <div class="panel">
         <div class="kpis">
           <div class="kpi"><b>행 수</b><div id="ml-nrow" class="val">-</div></div>
@@ -116,23 +123,10 @@
       </div>
     </div>
 
-    <div class="grid" style="margin-top:16px">
-      <div class="panel">
-        <h3 style="margin:0 0 8px;font-size:16px;color:#0f2e59">혼동행렬(분류)</h3>
-        <div id="ml-cm" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;font-size:14px"></div>
-      </div>
-      <div class="panel">
-        <h3 style="margin:0 0 8px;font-size:16px;color:#0f2e59">변수중요도(가중치 크기 기반)</h3>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>변수</th><th style="width:30%">점수</th></tr></thead>
-            <tbody id="ml-vip"></tbody>
-          </table>
-        </div>
-      </div>
+    <!-- CTA: 가운데 정렬 & 밑줄 제거 -->
+    <div class="cta-center">
+      <a class="btn primary" href="https://prod.cloud.jamovi.kr/login/" target="_blank" rel="noopener" role="button">jamovi cloud 바로가기</a>
     </div>
-
-    <a class="btn primary" style="margin-top:14px;display:inline-block" href="https://prod.cloud.jamovi.kr/login/" target="_blank" rel="noopener">jamovi cloud 바로가기</a>
   </div>
 </section>
 
@@ -148,7 +142,7 @@
   const file=$('#ml-file'), fname=$('#ml-file-name'), fhint=$('#ml-file-hint');
   const targetSel=$('#ml-target'), predsBox=$('#ml-preds');
   const taskSel=$('#ml-task'), epochsEl=$('#ml-epochs'), batchEl=$('#ml-batch'), splitEl=$('#ml-split'), splitLbl=$('#ml-split-label');
-  const trainBtn=$('#ml-train'), clearBtn=$('#ml-clear'), prog=$('#ml-progress'), ptext=$('#ml-ptext');
+  const trainBtn=$('#ml-train'), clearBtn=$('#ml-clear');
   const nrowEl=$('#ml-nrow'), ncolEl=$('#ml-ncol'), ntestEl=$('#ml-ntest');
   const metricsT=$('#ml-metrics'), cmBox=$('#ml-cm'), vipT=$('#ml-vip');
 
@@ -161,7 +155,8 @@
     nrowEl.textContent='-'; ncolEl.textContent='-'; ntestEl.textContent='-';
     targetSel.innerHTML=''; predsBox.innerHTML='';
     metricsT.innerHTML='<tr><td>—</td><td>CSV 업로드 후 실행</td></tr>';
-    cmBox.innerHTML=''; vipT.innerHTML='';
+    if (cmBox) cmBox.innerHTML='';
+    if (vipT) vipT.innerHTML='';
     trainBtn.disabled=true; clearBtn.disabled=true;
     log('대기');
   }
@@ -192,7 +187,7 @@
     Papa.parse(f, {
       header:true, dynamicTyping:true, skipEmptyLines:'greedy',
       delimiter:'', encoding:'UTF-8',
-      worker:false,
+      worker:false,              // 웹워커 비활성화
       complete:onParsed,
       error:(err)=>{ fhint.textContent='CSV 파싱 실패: '+(err?.message||''); log('파싱 오류'); }
     });
@@ -222,6 +217,7 @@
     return acts.length?acts:HEADERS.filter(h=> h!==targetSel.value);
   }
 
+  // 숫자/문자 혼합 자동 인코딩 + 표준화
   function toX(rows, cols){
     const isCat=c=> typeof rows.find(r=> r[c]!==undefined && r[c]!==null && r[c]!=='' )?.[c] === 'string';
     const catCols=cols.filter(isCat), numCols=cols.filter(c=>!catCols.includes(c));
@@ -235,16 +231,18 @@
     return tf.tensor2d(X);
   }
   function yVec(rows,t){ return rows.map(r=> r[t]); }
+
+  // 문자 타깃 → 분류 / 숫자 3종 이상 → 회귀 / 숫자 2종 → 이진
   function inferTask(y){
     const u=[...new Set(y.filter(v=> v!==''&&v!=null))];
     const allNum=u.every(v=> typeof v==='number');
-    return (allNum?(u.length<=2?'bincls':'reg'):(u.length<=2?'bincls':'reg'));
+    if (!allNum) return 'bincls';
+    return u.length > 2 ? 'reg' : 'bincls';
   }
 
   $('#ml-train').addEventListener('click', async ()=>{
     if(!DATA){ alert('CSV를 먼저 불러오세요.'); return; }
 
-    // ⬇️ 여기부터: cols 재선언 문제 수정 → predCols로 명확히
     const target = targetSel.value;
     const predCols = getPreds();
 
@@ -268,8 +266,13 @@
       yTensor = tf.tensor2d(y.map(v=>[v]));
     }
 
-    const n=X.shape[0], nTrain=Math.max(10, Math.floor(n*split)), idx=tf.util.createShuffledIndices(n);
-    const trainIdx=idx.slice(0,nTrain), testIdx=idx.slice(nTrain);
+    // ✅ gather 인덱스는 int32 텐서여야 함
+    const n = X.shape[0];
+    const nTrain = Math.max(10, Math.floor(n*split));
+    const shuffled = tf.util.createShuffledIndices(n);
+    const trainIdx = tf.tensor1d(Array.from(shuffled.slice(0, nTrain)), 'int32');
+    const testIdx  = tf.tensor1d(Array.from(shuffled.slice(nTrain)),   'int32');
+
     const Xtr=tf.gather(X,trainIdx), Xte=tf.gather(X,testIdx), ytr=tf.gather(yTensor,trainIdx), yte=tf.gather(yTensor,testIdx);
 
     const model=tf.sequential(); const d=X.shape[1];
@@ -289,27 +292,32 @@
       let tp=0,tn=0,fp=0,fn=0; for(let i=0;i<yhat.length;i++){ if(ytrue[i]===1&&yhat[i]===1)tp++; else if(ytrue[i]===0&&yhat[i]===0)tn++; else if(ytrue[i]===0&&yhat[i]===1)fp++; else fn++; }
       const acc=yhat.filter((v,i)=>v===ytrue[i]).length/Math.max(1,yhat.length);
       metricsT.innerHTML=`<tr><td>Accuracy</td><td>${acc.toFixed(3)}</td></tr><tr><td>Test N</td><td>${yhat.length}</td></tr>`;
-      cmBox.innerHTML=`<div><div class="sub">TN</div><div style="font-weight:800">${tn}</div></div>
-                       <div><div class="sub">FP</div><div style="font-weight:800">${fp}</div></div>
-                       <div><div class="sub">FN</div><div style="font-weight:800">${fn}</div></div>
-                       <div><div class="sub">TP</div><div style="font-weight:800">${tp}</div></div>`;
+      if (cmBox) {
+        cmBox.innerHTML=`<div><div class="sub">TN</div><div style="font-weight:800">${tn}</div></div>
+                         <div><div class="sub">FP</div><div style="font-weight:800">${fp}</div></div>
+                         <div><div class="sub">FN</div><div style="font-weight:800">${fn}</div></div>
+                         <div><div class="sub">TP</div><div style="font-weight:800">${tp}</div></div>`;
+      }
       log('평가 완료(분류)');
     } else {
       const p=(await pred.array()).map(v=>v[0]); const ytrue=(await yte.array()).map(v=>v[0]);
       const mse=p.reduce((s,v,i)=> s+(v-ytrue[i])**2,0)/Math.max(1,p.length), rmse=Math.sqrt(mse);
       const mae=p.reduce((s,v,i)=> s+Math.abs(v-ytrue[i]),0)/Math.max(1,p.length);
       metricsT.innerHTML=`<tr><td>RMSE</td><td>${rmse.toFixed(3)}</td></tr><tr><td>MAE</td><td>${mae.toFixed(3)}</td></tr><tr><td>Test N</td><td>${p.length}</td></tr>`;
-      cmBox.innerHTML=`<div class="sub">회귀는 혼동행렬이 없습니다.</div>`;
+      if (cmBox) cmBox.innerHTML=`<div class="sub">Regression does not use a confusion matrix.</div>`;
       log('평가 완료(회귀)');
     }
 
-    // ⬇️ 여기도 predCols 사용
+    // 변수 중요도(가중치 절대합)
     const w0=model.getWeights()[0];
     const arr=await w0.abs().sum(1).array();
-    const vip=predCols.map((c,i)=>({name:c,score:(arr[i]||0)}))
-                      .sort((a,b)=>b.score-a.score).slice(0,12);
-    vipT.innerHTML=vip.map(r=>`<tr><td>${String(r.name).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}</td><td>${r.score.toFixed(3)}</td></tr>`).join('');
+    if (vipT) {
+      const vip=predCols.map((c,i)=>({name:c,score:(arr[i]||0)})).sort((a,b)=>b.score-a.score).slice(0,12);
+      vipT.innerHTML=vip.map(r=>`<tr><td>${String(r.name).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}</td><td>${r.score.toFixed(3)}</td></tr>`).join('');
+    }
 
+    // 자원 정리
+    trainIdx.dispose(); testIdx.dispose();
     X.dispose();Xtr.dispose();Xte.dispose();yTensor.dispose();ytr.dispose();yte.dispose();pred.dispose();
   });
 })();
