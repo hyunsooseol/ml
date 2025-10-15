@@ -1,8 +1,8 @@
-<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (배너 제거 · 내부 스크롤 제거 A형 · FIXED) -->
+<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (배너 제거 · 내부 스크롤 제거 A형 · 레이아웃/버그 FIX) -->
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700;900&display=swap');
 
-  html, body { margin:0; overflow-x:hidden; }
+  html, body { margin:0; overflow-x:hidden; } /* 페이지 세로 스크롤은 유지 */
   .ml, .ml *{font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; box-sizing:border-box}
   .ml{
     --navy:#0f2e59; --cobalt:#174a8c; --text:#0F172A; --dim:#475569; --card:#fff; --br:#e6ecf4; --r-xl:20px;
@@ -36,22 +36,31 @@
   .ml .uploader strong{font-weight:800}
   .ml .uploader small{color:#64748b}
 
-  .ml .panel{border:1px solid var(--br);border-radius:14px;padding:14px}
-  .ml .controls{display:grid;grid-template-columns:1fr;gap:16px}
-  .ml .badges{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 0}
-  .ml .badge{font-size:12px;border:1px solid #e5e7eb;border-radius:999px;padding:6px 10px;background:#f8fafc}
+  .ml .panel{border:1px solid var(--br);border-radius:14px;padding:14px;min-width:0}
 
+  /* 결과 레이아웃 */
   .ml .results{margin-top:18px}
-  .ml .results-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:16px}
+  .ml .results-grid{
+    display:grid;
+    grid-template-columns:1.2fr 1fr 1fr;
+    gap:16px;
+    align-items:start;
+  }
   @media (max-width:1100px){ .ml .results-grid{grid-template-columns:1fr 1fr} }
   @media (max-width:760px){ .ml .results-grid{grid-template-columns:1fr} }
 
-  /* ★ A형: 내부 스크롤 제거 */
-  .ml .table-wrap{ border:1px solid #e9eef5;border-radius:14px;overflow:visible;max-height:none; }
-  .ml table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
-  .ml thead th{position:sticky;top:0;background:#f8fafc;color:#2b3345;font-weight:800;text-align:left;padding:10px;border-bottom:1px solid #e9eef5}
-  .ml tbody td{padding:10px;border-top:1px solid #eef2f7}
+  /* ★ A형: 내부 세로 스크롤 제거, 가로만 필요 시 스크롤 */
+  .ml .table-wrap{
+    border:1px solid #e9eef5; border-radius:14px;
+    overflow-x:auto; overflow-y:visible; display:block;
+    -webkit-overflow-scrolling:touch;
+  }
+  .ml table{width:100%; border-collapse:separate; border-spacing:0; font-size:14px; min-width:480px}
+  /* sticky 제거 → 임베드 충돌 방지 */
+  .ml thead th{background:#f8fafc;color:#2b3345;font-weight:800;text-align:left;padding:10px;border-bottom:1px solid #e9eef5; position:static}
+  .ml tbody td{padding:10px;border-top:1px solid #eef2f7; word-break:break-word}
 
+  /* Confusion Matrix */
   .ml .cm{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
   .ml .cm > div{border:1px solid #e5e7eb;border-radius:12px;padding:12px;text-align:center}
   .ml .cm .sub{font-size:11px;color:#64748b}
@@ -65,9 +74,13 @@
   .ml summary::-webkit-details-marker{display:none}
   .ml .caret{font-weight:900; opacity:.5}
   .ml .report .content{padding:12px 16px 16px; color:#0f172a; line-height:1.75; font-size:14px}
+
+  /* 점프 버튼 */
+  .ml .jump{display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 0}
 </style>
 
 <section class="ml" id="ml-app">
+  <!-- 입력 카드 -->
   <div class="card">
     <div class="h2">분석 시작</div>
     <p class="sub">CSV를 선택하면 아래 설정이 활성화됩니다. (데이터는 브라우저에서만 처리)</p>
@@ -125,6 +138,9 @@
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
           <button id="ml-train" class="btn primary" disabled>학습 시작</button>
           <button id="ml-clear" class="btn" disabled>초기화</button>
+          <div class="jump" style="margin-left:auto">
+            <a class="btn ghost" href="#ml-preview-anchor">예측 표로 이동</a>
+          </div>
         </div>
         <div id="ml-progress" class="sub" style="margin-top:8px;display:none">학습 중… <span id="ml-ptext"></span></div>
 
@@ -137,10 +153,11 @@
     </div>
   </div>
 
-  <!-- 결과 -->
-  <div class="card results">
+  <!-- 결과 카드 -->
+  <div class="card results" id="ml-results-card">
     <div class="h2">결과</div>
 
+    <!-- 임곗값 (분류일 때만) -->
     <div id="ml-thres-wrap" class="panel" style="display:none;margin-bottom:12px">
       <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
         <div style="min-width:220px">
@@ -153,6 +170,7 @@
     </div>
 
     <div class="results-grid">
+      <!-- 핵심 지표 -->
       <div class="panel">
         <div class="h2" style="font-size:16px;margin-bottom:6px">핵심 지표</div>
         <div class="table-wrap">
@@ -163,11 +181,13 @@
         </div>
       </div>
 
+      <!-- Confusion Matrix -->
       <div class="panel">
         <div class="h2" style="font-size:16px;margin-bottom:6px">Confusion Matrix</div>
         <div id="ml-cm" class="cm"></div>
       </div>
 
+      <!-- Feature Importance -->
       <div class="panel">
         <div class="h2" style="font-size:16px;margin-bottom:6px">Feature Importance</div>
         <div class="table-wrap">
@@ -178,7 +198,9 @@
         </div>
       </div>
 
+      <!-- 예측 미리보기 -->
       <div class="panel" style="grid-column: 1 / -1">
+        <a id="ml-preview-anchor"></a>
         <div class="h2" style="font-size:16px;margin-bottom:6px">예측 미리보기</div>
         <div class="table-wrap">
           <table>
@@ -193,9 +215,13 @@
             <tbody id="ml-preview"></tbody>
           </table>
         </div>
+        <div class="jump" style="justify-content:flex-end; margin-top:10px">
+          <a class="btn ghost" href="#ml-app">상단으로</a>
+        </div>
       </div>
     </div>
 
+    <!-- 보고용 접기 -->
     <div class="report panel" style="margin-top:14px">
       <details open>
         <summary>처리/모형 요약 <span class="caret">▾</span></summary>
@@ -220,232 +246,172 @@
 <script>
 (() => {
   const $ = (sel) => document.querySelector(sel);
-  const $$ = (sel) => document.querySelectorAll(sel);
   const log = (msg) => { const el = $('#ml-log'); el.textContent = '상태: ' + msg; };
 
+  /* ---------- CSV ---------- */
   function parseCSV(text) {
     const lines = text.replace(/\r/g,'').split('\n').filter(l => l.trim().length);
-    const out = [];
-    let headers = [];
     const split = (line) => {
-      const res = [];
-      let cur = '', inQ = false;
-      for (let i=0; i<line.length; i++){
-        const c = line[i];
-        if (c === '"'){
-          if (inQ && line[i+1] === '"'){ cur += '"'; i++; }
-          else inQ = !inQ;
-        } else if (c === ',' && !inQ){ res.push(cur); cur=''; }
+      const res = []; let cur = '', inQ = false;
+      for (let i=0;i<line.length;i++){
+        const c=line[i];
+        if (c === '"'){ if (inQ && line[i+1] === '"'){ cur+='"'; i++; } else inQ=!inQ; }
+        else if (c === ',' && !inQ){ res.push(cur); cur=''; }
         else cur += c;
       }
-      res.push(cur);
-      return res;
+      res.push(cur); return res;
     };
-    headers = split(lines[0]).map(h => h.trim());
-    for (let i=1; i<lines.length; i++){
-      const row = split(lines[i]);
-      const obj = {};
-      headers.forEach((h,idx) => obj[h] = row[idx] ?? '');
-      out.push(obj);
+    const headers = split(lines[0]).map(h => h.trim());
+    const rows = [];
+    for (let i=1;i<lines.length;i++){
+      const row = split(lines[i]); const obj = {};
+      headers.forEach((h,idx)=> obj[h] = row[idx] ?? '');
+      rows.push(obj);
     }
-    return { headers, rows: out };
+    return { headers, rows };
   }
-
-  function isNumericArray(arr){
-    let numCnt = 0, nonEmpty = 0;
-    for (const v of arr){
-      if (v === '' || v == null) continue;
-      nonEmpty++;
-      if (!isNaN(parseFloat(v))) numCnt++;
-    }
-    return numCnt / Math.max(nonEmpty,1) > 0.9;
-  }
-  function toNumberOrNa(v){ if (v === '' || v == null) return NaN; const n = Number(v); return isNaN(n) ? NaN : n; }
-
-  const median = (arr) => {
-    const a = arr.filter(v => !isNaN(v)).slice().sort((x,y)=>x-y);
-    if (!a.length) return NaN;
-    const m = Math.floor(a.length/2);
-    return a.length%2 ? a[m] : (a[m-1]+a[m])/2;
+  const isNumericArray = (arr)=> {
+    let num=0, ne=0; for (const v of arr){ if (v===''||v==null) continue; ne++; if (!isNaN(parseFloat(v))) num++; }
+    return num/Math.max(ne,1) > 0.9;
   };
-  const mode = (arr) => {
-    const cnt = new Map();
-    for (const v of arr){ const k = (v===''||v==null)?'__NA__':String(v); cnt.set(k,(cnt.get(k)||0)+1); }
-    let best='__NA__', c=-1; cnt.forEach((n,k)=>{ if(n>c){ c=n; best=k; }});
-    return best==='__NA__'? '' : best;
-  };
+  const toNumberOrNa = (v)=> (v===''||v==null)? NaN : (isNaN(+v)? NaN : +v);
+  const median = (a)=>{ const b=a.filter(x=>!isNaN(x)).sort((x,y)=>x-y); if(!b.length) return NaN; const m=Math.floor(b.length/2); return b.length%2? b[m] : (b[m-1]+b[m])/2; };
+  const mode = (arr)=>{ const m=new Map(); for(const v of arr){ const k=(v===''||v==null)?'__NA__':String(v); m.set(k,(m.get(k)||0)+1); } let best='__NA__',c=-1; m.forEach((n,k)=>{if(n>c){c=n;best=k;}}); return best==='__NA__'? '' : best; };
 
+  /* ---------- split/scale ---------- */
   function trainTestSplit(X, y, testRatio=0.2, seed=42){
-    const n = X.length;
-    const idx = Array.from({length:n}, (_,i)=>i);
-    let s = seed;
-    idx.sort(()=> { s = (s*9301 + 49297) % 233280; return (s/233280)-0.5; });
-    const nTest = Math.max(1, Math.round(n*testRatio));
-    const testIdx = new Set(idx.slice(0, nTest));
-    const Xtr=[], ytr=[], Xte=[], yte=[];
-    idx.forEach(i=>{
-      if (testIdx.has(i)){ Xte.push(X[i]); yte.push(y[i]); }
-      else { Xtr.push(X[i]); ytr.push(y[i]); }
-    });
-    return { Xtr, ytr, Xte, yte };
+    const n=X.length, idx=Array.from({length:n},(_,i)=>i); let s=seed;
+    idx.sort(()=>{ s=(s*9301+49297)%233280; return (s/233280)-0.5; });
+    const nTest=Math.max(1,Math.round(n*testRatio)), test=new Set(idx.slice(0,nTest));
+    const Xtr=[],ytr=[],Xte=[],yte=[]; idx.forEach(i=> test.has(i)? (Xte.push(X[i]),yte.push(y[i])) : (Xtr.push(X[i]),ytr.push(y[i])));
+    return { Xtr,ytr,Xte,yte };
   }
-
   function standardizeFit(X){
-    const nfeat = X[0].length;
-    const mu = Array(nfeat).fill(0), sd = Array(nfeat).fill(0);
-    for (let j=0;j<nfeat;j++){
-      let s=0, c=0;
-      for (let i=0;i<X.length;i++){ const v=X[i][j]; if(!isNaN(v)){ s+=v; c++; } }
-      mu[j] = c? s/c : 0;
-      let v=0, cc=0;
-      for (let i=0;i<X.length;i++){ const x=X[i][j]; if(!isNaN(x)){ v += (x-mu[j])**2; cc++; } }
-      sd[j] = cc? Math.sqrt(v/cc) || 1 : 1;
+    const p=X[0].length, mu=Array(p).fill(0), sd=Array(p).fill(0);
+    for(let j=0;j<p;j++){
+      let s=0,c=0; for(let i=0;i<X.length;i++){ const v=X[i][j]; if(!isNaN(v)){ s+=v; c++; } }
+      mu[j]=c? s/c : 0; let v=0,cc=0; for(let i=0;i<X.length;i++){ const x=X[i][j]; if(!isNaN(x)){ v+=(x-mu[j])**2; cc++; } }
+      sd[j]=cc? Math.sqrt(v/cc)||1 : 1;
     }
-    const transform = (Z) => Z.map(r => r.map((v,j)=> isNaN(v)?0 : (v-mu[j])/sd[j]));
-    return { mu, sd, transform };
+    const transform=(Z)=> Z.map(r=> r.map((v,j)=> isNaN(v)?0:(v-mu[j])/sd[j]));
+    return { mu,sd,transform };
   }
 
-  /* ====== 간단 모델들 (FIXED) ====== */
-  function dot(a,b){ let s=0; for (let i=0;i<a.length;i++) s+= (a[i]||0)*(b[i]||0); return s; }
-  function sigmoid(z){ return 1/(1+Math.exp(-z)); }
+  /* ---------- models ---------- */
+  const dot=(a,b)=>{let s=0; for(let i=0;i<a.length;i++) s+=(a[i]||0)*(b[i]||0); return s; };
+  const sigmoid=(z)=> 1/(1+Math.exp(-z));
 
-  // 선형회귀(경사하강) — b를 let으로 선언 (버그 Fix)
-  function fitLinear(X, y, epochs=200, lr=0.05, l2=1e-4, callback){
-    const n = X.length, p = X[0].length;
-    const w = Array(p).fill(0); let b = 0;
-    for (let ep=1; ep<=epochs; ep++){
-      let db=0; const dw = Array(p).fill(0);
-      for (let i=0;i<n;i++){
-        const yhat = dot(w,X[i]) + b;
-        const e = yhat - y[i];
-        db += e;
-        for (let j=0;j<p;j++){ dw[j] += e*X[i][j]; }
-      }
-      for (let j=0;j<p;j++){ w[j] -= lr * ((dw[j]/n) + l2*w[j]); }
-      b -= lr * (db/n);
-      if (callback && ep%10===0) callback(ep);
+  function fitLinear(X,y,epochs=200,lr=0.05,l2=1e-4,cb){
+    const n=X.length,p=X[0].length; const w=Array(p).fill(0); let b=0;
+    for(let ep=1;ep<=epochs;ep++){
+      let db=0; const dw=Array(p).fill(0);
+      for(let i=0;i<n;i++){ const yhat=dot(w,X[i])+b; const e=yhat-y[i]; db+=e; for(let j=0;j<p;j++) dw[j]+=e*X[i][j]; }
+      for(let j=0;j<p;j++) w[j]-=lr*((dw[j]/n)+l2*w[j]); b-=lr*(db/n);
+      if(cb && ep%10===0) cb(ep);
     }
-    const predict = (Z)=> Z.map(r => dot(w,r) + b);
-    return { w, b, predict };
+    const predict=(Z)=> Z.map(r=> dot(w,r)+b);
+    return { w,b,predict };
   }
 
-  // 로지스틱 회귀
-  function fitLogistic(X, y, epochs=400, lr=0.05, l2=1e-4, callback){
-    const n = X.length, p = X[0].length;
-    const w = Array(p).fill(0); let b = 0;
-    for (let ep=1; ep<=epochs; ep++){
-      let db=0; const dw = Array(p).fill(0);
-      for (let i=0;i<n;i++){
-        const z = dot(w,X[i]) + b;
-        const p1 = sigmoid(z);
-        const e = p1 - y[i];
-        db += e;
-        for (let j=0;j<p;j++){ dw[j] += e*X[i][j]; }
-      }
-      for (let j=0;j<p;j++){ w[j] -= lr * ((dw[j]/n) + l2*w[j]); }
-      b -= lr * (db/n);
-      if (callback && ep%20===0) callback(ep);
+  function fitLogistic(X,y,epochs=400,lr=0.05,l2=1e-4,cb){
+    const n=X.length,p=X[0].length; const w=Array(p).fill(0); let b=0;
+    for(let ep=1;ep<=epochs;ep++){
+      let db=0; const dw=Array(p).fill(0);
+      for(let i=0;i<n;i++){ const z=dot(w,X[i])+b; const p1=sigmoid(z); const e=p1-y[i]; db+=e; for(let j=0;j<p;j++) dw[j]+=e*X[i][j]; }
+      for(let j=0;j<p;j++) w[j]-=lr*((dw[j]/n)+l2*w[j]); b-=lr*(db/n);
+      if(cb && ep%20===0) cb(ep);
     }
-    const predictProba = (Z)=> Z.map(r => sigmoid(dot(w,r)+b));
-    const predict = (Z, thr=0.5)=> predictProba(Z).map(p => p>=thr?1:0);
-    return { w, b, predictProba, predict };
+    const predictProba=(Z)=> Z.map(r=> sigmoid(dot(w,r)+b));
+    const predict=(Z,thr=0.5)=> predictProba(Z).map(p=> p>=thr?1:0);
+    return { w,b,predictProba,predict };
   }
 
-  function mse(y, yhat){ let s=0, n=y.length; for (let i=0;i<n;i++){ const e=yhat[i]-y[i]; s += e*e; } return s/n; }
-  function binMetrics(yTrue, yProb, thr=0.5){
-    const yPred = yProb.map(p => p>=thr?1:0);
-    let tp=0, tn=0, fp=0, fn=0;
-    for (let i=0;i+yTrue.length>i;i++){
+  const mse=(y,yhat)=>{let s=0; for(let i=0;i<y.length;i++){ const e=yhat[i]-y[i]; s+=e*e; } return s/Math.max(1,y.length); };
+  function binMetrics(yTrue,yProb,thr=0.5){
+    const yPred=yProb.map(p=> p>=thr?1:0);
+    let tp=0,tn=0,fp=0,fn=0;
+    for(let i=0;i<yTrue.length;i++){   /* ← 오타 FIX */
       const yt=yTrue[i], yp=yPred[i];
-      if (yt===1 && yp===1) tp++;
-      else if (yt===0 && yp===0) tn++;
-      else if (yt===0 && yp===1) fp++;
-      else if (yt===1 && yp===0) fn++;
+      if(yt===1 && yp===1) tp++;
+      else if(yt===0 && yp===0) tn++;
+      else if(yt===0 && yp===1) fp++;
+      else if(yt===1 && yp===0) fn++;
     }
-    const acc = (tp+tn)/Math.max(1, yTrue.length);
-    const prec = tp/Math.max(1, tp+fp);
-    const rec = tp/Math.max(1, tp+fn);
-    const f1 = (prec+rec)? (2*prec*rec/(prec+rec)) : 0;
-    return { tp, tn, fp, fn, acc, prec, rec, f1, yPred };
+    const acc=(tp+tn)/Math.max(1,yTrue.length);
+    const prec=tp/Math.max(1,tp+fp);
+    const rec=tp/Math.max(1,tp+fn);
+    const f1=(prec+rec)? (2*prec*rec/(prec+rec)) : 0;
+    return { tp,tn,fp,fn,acc,prec,rec,f1,yPred };
   }
 
-  /* ====== 상태 ====== */
-  let RAW = null;
-  let META = { headers:[], numericCols:[], catCols:[], impute:{}, chosenTarget:null, chosenFeatures:[], task:'auto',
+  /* ---------- state ---------- */
+  let RAW=null;
+  let META={ headers:[], numericCols:[], catCols:[], impute:{}, chosenTarget:null, chosenFeatures:[], task:'auto',
     mapTarget:null, invMapTarget:null, scaler:null, model:null, isClassification:false, splitRatio:0.8 };
 
-  /* ====== DOM ====== */
+  /* ---------- DOM ---------- */
   const fInput = $('#ml-file');
   const chooseBtn = $('#ml-choose');
-  const nameEl = $('#ml-file-name');
-  const hintEl = $('#ml-file-hint');
   const targetSel = $('#ml-target');
   const predsWrap = $('#ml-preds');
   const splitRange = $('#ml-split');
   const splitLabel = $('#ml-split-label');
-  const taskSel = $('#ml-task');
-  const epochsInput = $('#ml-epochs');
   const trainBtn = $('#ml-train');
   const clearBtn = $('#ml-clear');
-  const pWrap = $('#ml-progress');
-  const pText = $('#ml-ptext');
+
   const nrowBadge = $('#ml-nrow');
   const ncolBadge = $('#ml-ncol');
   const ntestBadge = $('#ml-ntest');
-  const metricsBody = $('#ml-metrics');
-  const cmDiv = $('#ml-cm');
-  const vipBody = $('#ml-vip');
-  const previewBody = $('#ml-preview');
+
   const thresWrap = $('#ml-thres-wrap');
   const thresInput = $('#ml-thres');
   const thresLabel = $('#ml-thres-label');
   const thresSuggest = $('#ml-thres-suggest');
+
+  const metricsBody = $('#ml-metrics');
+  const cmDiv = $('#ml-cm');
+  const vipBody = $('#ml-vip');
+  const previewBody = $('#ml-preview');
+
+  const pWrap = $('#ml-progress');
+  const pText = $('#ml-ptext');
   const summaryBox = $('#ml-summary');
   const missingBox = $('#ml-missing');
 
-  /* ====== 업로더 ====== */
+  /* ---------- uploader ---------- */
   chooseBtn.addEventListener('click', ()=> fInput.click());
   fInput.addEventListener('change', handleFile);
-  $('#ml-drop').addEventListener('dragover', (e)=>{ e.preventDefault(); });
+  $('#ml-drop').addEventListener('dragover', (e)=> e.preventDefault());
   $('#ml-drop').addEventListener('drop', (e)=>{
     e.preventDefault();
-    if (e.dataTransfer.files && e.dataTransfer.files[0]){
-      fInput.files = e.dataTransfer.files;
-      handleFile();
-    }
+    if (e.dataTransfer.files && e.dataTransfer.files[0]){ fInput.files=e.dataTransfer.files; handleFile(); }
   });
 
   function handleFile(){
-    const file = fInput.files && fInput.files[0];
-    if (!file) return;
-    nameEl.textContent = file.name;
-    hintEl.textContent = `${(file.size/1024).toFixed(1)} KB`;
+    const file = fInput.files && fInput.files[0]; if(!file) return;
+    $('#ml-file-name').textContent = file.name;
+    $('#ml-file-hint').textContent = `${(file.size/1024).toFixed(1)} KB`;
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = ()=>{
       try{
         log('CSV 파싱 중…');
         const { headers, rows } = parseCSV(reader.result);
-        RAW = { headers, rows };
-        resetUIAfterLoad(headers, rows);
-        log('CSV 로드 완료');
-      }catch(err){
-        console.error(err); log('CSV 파싱 오류');
-      }
+        RAW = { headers, rows }; resetUIAfterLoad(headers, rows); log('CSV 로드 완료');
+      }catch(err){ console.error(err); log('CSV 파싱 오류'); }
     };
     reader.readAsText(file, 'utf-8');
   }
 
   function resetUIAfterLoad(headers, rows){
-    const cols = headers;
-    const colData = {}; cols.forEach(h => colData[h] = rows.map(r => r[h]));
-    const numericCols = [], catCols = [];
-    cols.forEach(h => (isNumericArray(colData[h]) ? numericCols : catCols).push(h));
+    const colData={}; headers.forEach(h=> colData[h]=rows.map(r=>r[h]));
+    const numericCols=[], catCols=[];
+    headers.forEach(h=> (isNumericArray(colData[h])? numericCols:catCols).push(h));
 
-    META.headers = headers; META.numericCols = numericCols; META.catCols = catCols; META.impute = {};
-    for (const h of numericCols){ const nums = colData[h].map(toNumberOrNa); META.impute[h] = { type:'num', value: median(nums) }; }
-    for (const h of catCols){ META.impute[h] = { type:'cat', value: mode(colData[h]) }; }
+    META.headers=headers; META.numericCols=numericCols; META.catCols=catCols; META.impute={};
+    for(const h of numericCols){ META.impute[h]={type:'num', value: median(colData[h].map(toNumberOrNa))}; }
+    for(const h of catCols){ META.impute[h]={type:'cat', value: mode(colData[h])}; }
 
-    targetSel.innerHTML = headers.map(h => `<option value="${h}">${h}</option>`).join('');
+    targetSel.innerHTML = headers.map(h=>`<option value="${h}">${h}</option>`).join('');
     targetSel.value = headers[headers.length-1];
     META.chosenTarget = targetSel.value;
 
@@ -455,8 +421,7 @@
     ncolBadge.textContent = headers.length;
     updateSplitLabel();
 
-    trainBtn.disabled = false;
-    clearBtn.disabled = false;
+    trainBtn.disabled = false; clearBtn.disabled = false;
 
     metricsBody.innerHTML = `<tr><td>—</td><td>CSV 업로드 후 실행</td></tr>`;
     cmDiv.innerHTML = ''; vipBody.innerHTML = ''; previewBody.innerHTML = '';
@@ -467,118 +432,108 @@
   }
 
   function renderFeatureChips(){
-    const feats = META.headers.filter(h => h !== META.chosenTarget);
+    const feats = META.headers.filter(h => h!==META.chosenTarget);
     META.chosenFeatures = feats.slice();
-    predsWrap.innerHTML = feats.map(h => `<span class="chip active" data-k="${h}">${h}</span>`).join('');
-    predsWrap.querySelectorAll('.chip').forEach(chip => {
+    predsWrap.innerHTML = feats.map(h=>`<span class="chip active" data-k="${h}">${h}</span>`).join('');
+    predsWrap.querySelectorAll('.chip').forEach(chip=>{
       chip.addEventListener('click', ()=>{
-        const k = chip.dataset.k;
-        const on = chip.classList.toggle('active');
-        if (on){ if (!META.chosenFeatures.includes(k)) META.chosenFeatures.push(k); }
-        else { META.chosenFeatures = META.chosenFeatures.filter(x => x!==k); }
+        const k=chip.dataset.k; const on=chip.classList.toggle('active');
+        if(on){ if(!META.chosenFeatures.includes(k)) META.chosenFeatures.push(k); }
+        else META.chosenFeatures = META.chosenFeatures.filter(x=>x!==k);
       });
     });
   }
+  targetSel.addEventListener('change', ()=>{ META.chosenTarget=targetSel.value; renderFeatureChips(); });
+  function updateSplitLabel(){ const v=Number(splitRange.value); splitLabel.textContent=`${v}%`; META.splitRatio=v/100; }
+  splitRange.addEventListener('input', updateSplitLabel);
 
-  targetSel.addEventListener('change', ()=>{ META.chosenTarget = targetSel.value; renderFeatureChips(); });
-  function updateSplitLabel(){ const v = Number($('#ml-split').value); $('#ml-split-label').textContent = `${v}%`; META.splitRatio = v/100; }
-  $('#ml-split').addEventListener('input', updateSplitLabel);
-  $('#ml-task').addEventListener('change', ()=> META.task = $('#ml-task').value);
-  $('#ml-thres').addEventListener('input', ()=>{
+  thresInput.addEventListener('input', ()=>{
     const thr = Number(thresInput.value)/100; thresLabel.textContent = thr.toFixed(2);
-    if (META.isClassification && META._lastProb){ applyClassificationOutputs(META._lastYtrue, META._lastProb, thr); }
+    if (META.isClassification && META._lastProb) applyClassificationOutputs(META._lastYtrue, META._lastProb, thr);
   });
 
-  $('#ml-clear').addEventListener('click', ()=>{
-    RAW = null;
-    META = { headers:[], numericCols:[], catCols:[], impute:{}, chosenTarget:null, chosenFeatures:[], task:'auto',
+  clearBtn.addEventListener('click', ()=>{
+    RAW=null; META={ headers:[], numericCols:[], catCols:[], impute:{}, chosenTarget:null, chosenFeatures:[], task:'auto',
       mapTarget:null, invMapTarget:null, scaler:null, model:null, isClassification:false, splitRatio:0.8 };
-    $('#ml-file').value = ''; $('#ml-file-name').textContent = 'CSV 파일을 선택하거나 드롭하세요'; $('#ml-file-hint').textContent = '';
-    targetSel.innerHTML = ''; predsWrap.innerHTML = '';
-    metricsBody.innerHTML = `<tr><td>—</td><td>CSV 업로드 후 실행</td></tr>`;
-    cmDiv.innerHTML = ''; vipBody.innerHTML = ''; previewBody.innerHTML = '';
-    nrowBadge.textContent = '-'; ncolBadge.textContent = '-'; ntestBadge.textContent = '-';
-    thresWrap.style.display = 'none'; pWrap.style.display = 'none'; log('대기');
+    $('#ml-file').value=''; $('#ml-file-name').textContent='CSV 파일을 선택하거나 드롭하세요'; $('#ml-file-hint').textContent='';
+    targetSel.innerHTML=''; predsWrap.innerHTML='';
+    metricsBody.innerHTML=`<tr><td>—</td><td>CSV 업로드 후 실행</td></tr>`; cmDiv.innerHTML=''; vipBody.innerHTML=''; previewBody.innerHTML='';
+    nrowBadge.textContent='-'; ncolBadge.textContent='-'; ntestBadge.textContent='-'; thresWrap.style.display='none'; pWrap.style.display='none';
+    log('대기');
   });
 
-  $('#ml-train').addEventListener('click', async ()=>{
+  /* ---------- train ---------- */
+  $('#ml-task').addEventListener('change', ()=> META.task = $('#ml-task').value);
+  $('#ml-train').addEventListener('click', ()=>{
     try{
-      if (!RAW) return;
-      const rows = RAW.rows.slice();
-      const target = META.chosenTarget;
-      const features = (META.chosenFeatures && META.chosenFeatures.length) ? META.chosenFeatures : RAW.headers.filter(h => h!==target);
+      if(!RAW) return;
+      const rows=RAW.rows.slice();
+      const target=META.chosenTarget;
+      const features=(META.chosenFeatures && META.chosenFeatures.length)? META.chosenFeatures : RAW.headers.filter(h=>h!==target);
 
-      log('전처리 중…'); pWrap.style.display = 'block'; $('#ml-ptext').textContent = '전처리';
+      log('전처리 중…'); pWrap.style.display='block'; pText.textContent='전처리';
       const Xraw = rows.map(r => features.map(h => toNumberOrNa(r[h])));
-      const medEach = []; for (let j=0;j<features.length;j++){ medEach[j] = median(Xraw.map(r => r[j])); }
+      const medEach = []; for(let j=0;j<features.length;j++){ medEach[j] = median(Xraw.map(r=>r[j])); }
       const X = Xraw.map(r => r.map((v,j)=> isNaN(v)? medEach[j] : v));
 
       const ycol = rows.map(r => r[target]);
-      let y = [], isClassification = false;
+      let y=[], isClassification=false;
 
-      if (META.task === 'reg'){
-        isClassification = false; y = ycol.map(v => toNumberOrNa(v));
-      } else if (META.task === 'bincls'){
-        isClassification = true;
-      } else {
-        const uniq = Array.from(new Set(ycol.map(v=> String(v))));
-        isClassification = uniq.length <= Math.max(2, Math.sqrt(rows.length)/2);
-      }
+      if (META.task==='reg'){ isClassification=false; y=ycol.map(v=>toNumberOrNa(v)); }
+      else if (META.task==='bincls'){ isClassification=true; }
+      else { const uniq=Array.from(new Set(ycol.map(v=>String(v)))); isClassification = uniq.length <= Math.max(2, Math.sqrt(rows.length)/2); }
 
       if (isClassification){
         const uniq = Array.from(new Set(ycol.map(v=> String(v)))).filter(x=>x!=='');
-        if (uniq.length < 2){ alert('분류 수행 불가: 타깃 값이 한 종류입니다.'); return; }
-        const cls = uniq.slice(0,2);
-        const map = {}; const inv = {}; map[cls[0]]=0; map[cls[1]]=1; inv[0]=cls[0]; inv[1]=cls[1];
-        y = ycol.map(v => map[String(v)] ?? 0);
-        META.mapTarget = map; META.invMapTarget = inv;
-      } else {
-        y = ycol.map(v => toNumberOrNa(v));
-        const keep = []; for (let i=0;i<y.length;i++) if (!isNaN(y[i])) keep.push(i);
-        const Xk = keep.map(i => X[i]), yk = keep.map(i => y[i]); X.length=0; y.length=0; X.push(...Xk); y.push(...yk);
-        META.mapTarget = null; META.invMapTarget = null;
+        if (uniq.length<2){ alert('분류 수행 불가: 타깃 값이 한 종류입니다.'); pWrap.style.display='none'; return; }
+        const cls = uniq.slice(0,2); const map={}, inv={}; map[cls[0]]=0; map[cls[1]]=1; inv[0]=cls[0]; inv[1]=cls[1];
+        y = ycol.map(v => map[String(v)] ?? 0); META.mapTarget=map; META.invMapTarget=inv;
+      }else{
+        y = ycol.map(v=>toNumberOrNa(v));
+        const keep=[]; for(let i=0;i<y.length;i++) if(!isNaN(y[i])) keep.push(i);
+        const Xk=keep.map(i=>X[i]), yk=keep.map(i=>y[i]); X.length=0; y.length=0; X.push(...Xk); y.push(...yk);
+        META.mapTarget=null; META.invMapTarget=null;
       }
 
       const scaler = standardizeFit(X); const Xs = scaler.transform(X);
-      const testRatio = 1 - META.splitRatio;
-      const { Xtr, ytr, Xte, yte } = trainTestSplit(Xs, y, testRatio);
+      const { Xtr,ytr,Xte,yte } = trainTestSplit(Xs, y, 1-META.splitRatio);
       ntestBadge.textContent = yte.length;
 
       META.isClassification = isClassification;
       if (isClassification){
-        const epochs = clampInt($('#ml-epochs').value, 20, 2000);
+        const epochs = Math.max(20, Math.min(2000, parseInt($('#ml-epochs').value||0,10)||30));
         log('분류 학습 중…');
-        const model = fitLogistic(Xtr, ytr, epochs, 0.08, 1e-4, (ep)=>{ $('#ml-ptext').textContent = `분류 학습 ${ep}/${epochs}`; });
+        const model = fitLogistic(Xtr, ytr, epochs, 0.08, 1e-4, (ep)=> pText.textContent=`분류 학습 ${ep}/${epochs}`);
         const prob = model.predictProba(Xte);
-        META._lastProb = prob; META._lastYtrue = yte; META.model = model; META.scaler = scaler;
-        thresWrap.style.display = ''; thresSuggest.textContent = '0.50'; thresInput.value = 50; thresLabel.textContent = '0.50';
-        applyClassificationOutputs(yte, prob, 0.5, {features, Xte, inv: META.invMapTarget});
+        META._lastProb=prob; META._lastYtrue=yte; META.model=model; META.scaler=scaler;
+        thresWrap.style.display=''; thresSuggest.textContent='0.50'; thresInput.value=50; thresLabel.textContent='0.50';
+        applyClassificationOutputs(yte, prob, 0.5, {features, Xte, inv:META.invMapTarget});
         renderVIP(features, model.w);
         summaryBox.textContent = `모형: Logistic (epochs=${epochs}) · 특징 ${features.length} · 테스트 ${yte.length}`;
-      } else {
-        const epochs = clampInt($('#ml-epochs').value, 20, 2000);
+      }else{
+        const epochs = Math.max(20, Math.min(2000, parseInt($('#ml-epochs').value||0,10)||30));
         log('회귀 학습 중…');
-        const model = fitLinear(Xtr, ytr, epochs, 0.05, 1e-4, (ep)=>{ $('#ml-ptext').textContent = `회귀 학습 ${ep}/${epochs}`; });
+        const model = fitLinear(Xtr, ytr, epochs, 0.05, 1e-4, (ep)=> pText.textContent=`회귀 학습 ${ep}/${epochs}`);
         const pred = model.predict(Xte);
-        META.model = model; META.scaler = scaler;
-        thresWrap.style.display = 'none';
+        META.model=model; META.scaler=scaler;
+        thresWrap.style.display='none';
         renderRegMetrics(yte, pred);
-        renderPreviewRegression(yte, pred, features, Xte);
+        renderPreviewRegression(yte, pred, features);
         renderVIP(features, model.w);
         summaryBox.textContent = `모형: Linear Regression (epochs=${epochs}) · 특징 ${features.length} · 테스트 ${yte.length}`;
       }
 
-      log('완료'); pWrap.style.display = 'none';
+      log('완료'); pWrap.style.display='none';
+      // 결과로 스크롤 포커싱(미리보기 보이도록)
+      document.querySelector('#ml-preview-anchor')?.scrollIntoView({behavior:'smooth', block:'start'});
     }catch(err){
-      console.error(err); log('오류: ' + (err?.message || err));
-      pWrap.style.display = 'none';
+      console.error(err); log('오류: ' + (err?.message || err)); pWrap.style.display='none';
     }
   });
 
-  function clampInt(v, lo, hi){ const n = parseInt(v||0,10); return Math.max(lo, Math.min(hi, isNaN(n)? lo : n)); }
-
+  /* ---------- render helpers ---------- */
   function applyClassificationOutputs(yTrue, yProb, thr=0.5, extra){
-    const { tp, tn, fp, fn, acc, prec, rec, f1, yPred } = binMetrics(yTrue, yProb, thr);
+    const { tp,tn,fp,fn,acc,prec,rec,f1,yPred } = binMetrics(yTrue,yProb,thr);
     $('#ml-metrics').innerHTML = `
       <tr><td>Accuracy</td><td>${acc.toFixed(4)}</td></tr>
       <tr><td>Precision</td><td>${prec.toFixed(4)}</td></tr>
@@ -590,37 +545,35 @@
       <div><div class="sub">FP</div><div style="font-weight:800;font-size:18px">${fp}</div></div>
       <div><div class="sub">FN</div><div style="font-weight:800;font-size:18px">${fn}</div></div>
       <div><div class="sub">TP</div><div style="font-weight:800;font-size:18px">${tp}</div></div>`;
-    renderPreviewClassification(yTrue, yProb, yPred, extra?.features||[], extra?.Xte||[], extra?.inv||{});
+    renderPreviewClassification(yTrue,yPred,yProb, extra?.features||[], extra?.inv||{});
   }
 
   function renderVIP(features, weights){
     const items = features.map((f,i)=>({ f, s: Math.abs(weights[i]||0) }))
-                         .sort((a,b)=> b.s - a.s)
-                         .slice(0, Math.min(20, features.length));
-    $('#ml-vip').innerHTML = items.map(it => `<tr><td>${escapeHtml(it.f)}</td><td>${it.s.toFixed(6)}</td></tr>`).join('') || `<tr><td colspan="2">-</td></tr>`;
+                         .sort((a,b)=> b.s-a.s).slice(0, Math.min(20, features.length));
+    $('#ml-vip').innerHTML = items.map(it=> `<tr><td>${escapeHtml(it.f)}</td><td>${it.s.toFixed(6)}</td></tr>`).join('') || `<tr><td colspan="2">-</td></tr>`;
   }
 
-  function renderPreviewClassification(yTrue, yProb, yPred, features, Xte, inv){
-    const rows = []; const topK = 3; const topNames = features.slice(0, topK).join(', ');
+  function renderPreviewClassification(yTrue, yPred, yProb, features, inv){
+    const topNames = features.slice(0,3).join(', ');
+    const rows = [];
     for (let i=0;i<yTrue.length;i++){
-      rows.push(`
-        <tr>
-          <td>${escapeHtml(inv?.[yTrue[i]] ?? String(yTrue[i]))}</td>
-          <td>${escapeHtml(inv?.[yPred[i]] ?? String(yPred[i]))}</td>
-          <td>${yProb[i].toFixed(4)}</td>
-          <td>${escapeHtml(topNames)}</td>
-        </tr>`);
+      rows.push(`<tr>
+        <td>${escapeHtml(inv?.[yTrue[i]] ?? String(yTrue[i]))}</td>
+        <td>${escapeHtml(inv?.[yPred[i]] ?? String(yPred[i]))}</td>
+        <td>${(yProb[i]??0).toFixed(4)}</td>
+        <td>${escapeHtml(topNames)}</td>
+      </tr>`);
     }
     $('#ml-preview').innerHTML = rows.join('') || `<tr><td colspan="4">-</td></tr>`;
   }
 
   function renderRegMetrics(yTrue, yPred){
-    const _mse = mse(yTrue, yPred); const rmse = Math.sqrt(_mse);
-    let mae=0; for (let i=0;i<yTrue.length;i++) mae += Math.abs(yPred[i]-yTrue[i]); mae/=yTrue.length||1;
-    const meanY = yTrue.reduce((a,b)=>a+b,0)/(yTrue.length||1);
-    let ssTot=0, ssRes=0;
-    for (let i=0;i<yTrue.length;i++){ ssRes += (yTrue[i]-yPred[i])**2; ssTot += (yTrue[i]-meanY)**2; }
-    const r2 = 1 - (ssRes/Math.max(ssTot, 1e-12));
+    const _mse = mse(yTrue,yPred); const rmse=Math.sqrt(_mse);
+    let mae=0; for(let i=0;i<yTrue.length;i++) mae += Math.abs(yPred[i]-yTrue[i]); mae/=Math.max(1,yTrue.length);
+    const meanY = yTrue.reduce((a,b)=>a+b,0)/Math.max(1,yTrue.length);
+    let ssTot=0,ssRes=0; for(let i=0;i<yTrue.length;i++){ ssRes+=(yTrue[i]-yPred[i])**2; ssTot+=(yTrue[i]-meanY)**2; }
+    const r2 = 1 - (ssRes/Math.max(ssTot,1e-12));
     $('#ml-metrics').innerHTML = `
       <tr><td>RMSE</td><td>${rmse.toFixed(6)}</td></tr>
       <tr><td>MAE</td><td>${mae.toFixed(6)}</td></tr>
@@ -630,14 +583,15 @@
   }
 
   function renderPreviewRegression(yTrue, yPred, features){
-    const rows = []; const topNames = features.slice(0,3).join(', ');
+    const topNames = features.slice(0,3).join(', ');
+    const rows = [];
     for (let i=0;i<yTrue.length;i++){
       rows.push(`<tr><td>${yTrue[i].toFixed(4)}</td><td>${yPred[i].toFixed(4)}</td><td>—</td><td>${escapeHtml(topNames)}</td></tr>`);
     }
     $('#ml-preview').innerHTML = rows.join('') || `<tr><td colspan="4">-</td></tr>`;
   }
 
-  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  const escapeHtml = (s)=> String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
   log('대기');
 })();
