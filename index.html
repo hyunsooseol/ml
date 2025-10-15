@@ -1,4 +1,4 @@
-<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (배너 제거 버전) -->
+<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (배너 제거 · 내부 스크롤 제거 A형) -->
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700;900&display=swap');
 
@@ -50,7 +50,13 @@
   @media (max-width:1100px){ .ml .results-grid{grid-template-columns:1fr 1fr} }
   @media (max-width:760px){ .ml .results-grid{grid-template-columns:1fr} }
 
-  .ml .table-wrap{border:1px solid #e9eef5;border-radius:14px;overflow:auto;max-height:340px}
+  /* ★ A형: 내부 스크롤 제거 */
+  .ml .table-wrap{
+    border:1px solid #e9eef5;
+    border-radius:14px;
+    overflow:visible;
+    max-height:none;
+  }
   .ml table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
   .ml thead th{position:sticky;top:0;background:#f8fafc;color:#2b3345;font-weight:800;text-align:left;padding:10px;border-bottom:1px solid #e9eef5}
   .ml tbody td{padding:10px;border-top:1px solid #eef2f7}
@@ -81,7 +87,7 @@
     <div class="h2">분석 시작</div>
     <p class="sub">CSV를 선택하면 아래 설정이 활성화됩니다. (데이터는 브라우저에서만 처리)</p>
 
-    <!-- 업로더 (좌: 아이콘+문구, 우: 파일 선택 버튼) -->
+    <!-- 업로더 -->
     <div class="uploader" id="ml-drop">
       <div class="uploader-left">
         <span class="uploader-icon" aria-hidden="true">
@@ -167,7 +173,7 @@
       <!-- 1) 핵심 지표 -->
       <div class="panel">
         <div class="h2" style="font-size:16px;margin-bottom:6px">핵심 지표</div>
-        <div class="table-wrap" style="max-height:260px">
+        <div class="table-wrap">
           <table>
             <thead><tr><th>지표</th><th>값</th></tr></thead>
             <tbody id="ml-metrics"><tr><td>—</td><td>CSV 업로드 후 실행</td></tr></tbody>
@@ -184,7 +190,7 @@
       <!-- 3) Feature Importance -->
       <div class="panel">
         <div class="h2" style="font-size:16px;margin-bottom:6px">Feature Importance</div>
-        <div class="table-wrap" style="max-height:260px">
+        <div class="table-wrap">
           <table>
             <thead><tr><th>Feature</th><th>Score</th></tr></thead>
             <tbody id="ml-vip"></tbody>
@@ -194,437 +200,621 @@
 
       <!-- 4) 오분류/예측 미리보기 -->
       <div class="panel" style="grid-column: 1 / -1">
-        <div class="h2" style="font-size:16px;margin-bottom:6px">오분류 사례 / 예측 미리보기</div>
-        <div class="table-wrap" style="max-height:300px">
+        <div class="h2" style="font-size:16px;margin-bottom:6px">예측 미리보기</div>
+        <div class="table-wrap">
           <table>
-            <thead><tr><th>#</th><th>True</th><th>Pred</th><th>Prob/Value</th></tr></thead>
+            <thead>
+              <tr>
+                <th style="min-width:120px">실제값</th>
+                <th style="min-width:120px">예측값</th>
+                <th style="min-width:140px">예측확률/예측치</th>
+                <th>특징 (상위 몇 개)</th>
+              </tr>
+            </thead>
             <tbody id="ml-preview"></tbody>
           </table>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- 📄 논문 보고용 (접기) -->
-  <div class="card report">
-    <details>
-      <summary>분석 개요 <span class="caret">▼</span></summary>
-      <div class="content">
-        • 분석 과제(Task): <b id="r-task">-</b><br>
-        • 표본 분할: <b id="r-split">-</b> (Train/Test)<br>
-        • 타깃 변수: <b id="r-target">-</b><br>
-        • 사용 특징 변수: <b id="r-feats">-</b>
-      </div>
-    </details>
-    <details>
-      <summary>모형 및 학습 설정 <span class="caret">▼</span></summary>
-      <div class="content">
-        • 기본 모형: <b id="r-model">-</b><br>
-        • Epochs / Batch size: <b id="r-epochs">-</b>, <b id="r-batch">-</b><br>
-        • 변수 중요도 산정: <i>입력층 가중치 절댓값 합</i> 기반(간단한 중요도 근사)
-      </div>
-    </details>
-    <details>
-      <summary>결측값 처리 및 전처리 <span class="caret">▼</span></summary>
-      <div class="content">
-        • 수치형 결측: <i>열 평균 대치</i><br>
-        • 범주형 결측: <i>'MISSING' 카테고리</i> 생성 후 One-hot 인코딩<br>
-        • 스케일링: 수치형 열 <i>z-정규화</i>(학습·평가 동일 파이프라인)
-      </div>
-    </details>
-    <details>
-      <summary>평가 및 보고 가이드 <span class="caret">▼</span></summary>
-      <div class="content">
-        <div id="r-cls" style="display:none">
-          • 추천 임곗값: <b id="r-th">-</b> · ROC-AUC: <b id="r-auc">-</b><br>
-          • 보고 예시: “데이터는 <span id='r-split2'>-</span>로 분할하였다.
-            분류기는 ReLU 은닉층을 갖는 소규모 완전연결 신경망이며,
-            이진 분류의 경우 시그모이드 출력을 사용하였다. 임곗값
-            <span id='r-th2'>-</span>에서 Accuracy, Precision, Recall, F1, Balanced Accuracy,
-            ROC-AUC를 산출하였다.”
+    <!-- 논문 보고용 접기 -->
+    <div class="report panel" style="margin-top:14px">
+      <details open>
+        <summary>
+          처리/모형 요약 <span class="caret">▾</span>
+        </summary>
+        <div class="content" id="ml-summary">
+          CSV 업로드 후 요약이 표시됩니다.
         </div>
-        <div id="r-reg" style="display:none">
-          • 보고 예시: “데이터는 <span id='r-split3'>-</span>로 분할하였다.
-            회귀기는 ReLU 은닉층을 갖는 소규모 완전연결 신경망이며,
-            손실함수는 MSE로 학습하였다. RMSE, MAE, R²를 보고하였다.”
+      </details>
+      <details>
+        <summary>
+          결측치 처리 <span class="caret">▾</span>
+        </summary>
+        <div class="content" id="ml-missing">
+          숫자형: 중앙값 대치 · 범주형: 최빈값 대치(간단 규칙) — 상세 내역은 업로드 후 표기됩니다.
         </div>
-      </div>
-    </details>
+      </details>
+      <details>
+        <summary>
+          특징 중요도 산출 방식 <span class="caret">▾</span>
+        </summary>
+        <div class="content">
+          분류(Logistic): 절대 가중치 | 회귀(Linear): 절대 회귀계수 기준으로 정렬해 상위 항목을 표기합니다.
+        </div>
+      </details>
+    </div>
   </div>
 </section>
 
-<!-- 라이브러리 -->
-<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.21.0/dist/tf.min.js"></script>
-
 <script>
-(function(){
-  const $=s=>document.querySelector(s);
-  const log=m=>{$('#ml-log').textContent='상태: '+m};
+(() => {
+  // ---------- 유틸 ----------
+  const $ = (sel) => document.querySelector(sel);
+  const $$ = (sel) => document.querySelectorAll(sel);
+  const log = (msg) => { const el = $('#ml-log'); el.textContent = '상태: ' + msg; };
 
-  const file=$('#ml-file'), chooseBtn=$('#ml-choose'), drop=$('#ml-drop');
-  const fname=$('#ml-file-name'), fhint=$('#ml-file-hint');
-
-  const targetSel=$('#ml-target'), predsBox=$('#ml-preds');
-  const taskSel=$('#ml-task'), epochsEl=$('#ml-epochs'), batchEl=$('#ml-batch'), splitEl=$('#ml-split'), splitLbl=$('#ml-split-label');
-  const trainBtn=$('#ml-train'), clearBtn=$('#ml-clear');
-  const nrowEl=$('#ml-nrow'), ncolEl=$('#ml-ncol'), ntestEl=$('#ml-ntest');
-  const metricsT=$('#ml-metrics'), cmBox=$('#ml-cm'), vipT=$('#ml-vip'), previewT=$('#ml-preview');
-  const thWrap=$('#ml-thres-wrap'), thEl=$('#ml-thres'), thLbl=$('#ml-thres-label'), thSug=$('#ml-thres-suggest');
-
-  // 보고용 노드
-  const rTask=$('#r-task'), rSplit=$('#r-split'), rSplit2=$('#r-split2'), rSplit3=$('#r-split3'),
-        rTarget=$('#r-target'), rFeats=$('#r-feats'),
-        rModel=$('#r-model'), rEpochs=$('#r-epochs'), rBatch=$('#r-batch'),
-        rCls=$('#r-cls'), rReg=$('#r-reg'), rTh=$('#r-th'), rTh2=$('#r-th2'), rAuc=$('#r-auc');
-
-  let DATA=null, HEADERS=[];
-  let CLF_INFO=null; // {ytrue, prob, testIdxArr, auc, suggestTh}
-
-  splitEl?.addEventListener('input', e=> splitLbl.textContent = e.target.value + '%');
-
-  function resetAll(){
-    DATA=null; HEADERS=[]; CLF_INFO=null;
-    fname.textContent='CSV 파일을 선택하거나 드롭하세요'; fhint.textContent='';
-    nrowEl.textContent='-'; ncolEl.textContent='-'; ntestEl.textContent='-';
-    targetSel.innerHTML=''; predsBox.innerHTML='';
-    metricsT.innerHTML='<tr><td>—</td><td>CSV 업로드 후 실행</td></tr>';
-    cmBox.innerHTML=''; vipT.innerHTML=''; previewT.innerHTML='';
-    thWrap.style.display='none';
-    trainBtn.disabled=true; clearBtn.disabled=true;
-    // 보고 섹션 초기화
-    rTask.textContent=rSplit.textContent=rTarget.textContent=rFeats.textContent='-';
-    rModel.textContent=rEpochs.textContent=rBatch.textContent='-';
-    rCls.style.display='none'; rReg.style.display='none';
-    rTh.textContent=rTh2.textContent=rAuc.textContent='-';
-    log('대기');
-  }
-  $('#ml-clear')?.addEventListener('click', ()=>{ file.value=''; resetAll(); });
-  resetAll();
-
-  // 파일 열기
-  chooseBtn.addEventListener('click', ()=> file.click());
-  drop.addEventListener('click', e=>{ if(e.target.id!=='ml-choose') file.click(); });
-
-  // 드롭
-  ;['dragenter','dragover','dragleave','drop'].forEach(ev=> drop.addEventListener(ev, e=>{e.preventDefault();e.stopPropagation();}));
-  drop.addEventListener('drop', (e)=>{ const f=e.dataTransfer.files?.[0]; if(f){ handleFile(f); } });
-
-  // 선택
-  file.addEventListener('change', ()=>{ const f=file.files?.[0]; if(f){ handleFile(f); } });
-
-  function handleFile(f){
-    fname.textContent=f.name; fhint.textContent='읽는 중…'; log('CSV 파싱 중');
-    Papa.parse(f, {
-      header:true, dynamicTyping:true, skipEmptyLines:'greedy',
-      delimiter:'', encoding:'UTF-8',
-      worker:false,
-      complete:onParsed,
-      error:(err)=>{ fhint.textContent='CSV 파싱 실패: '+(err?.message||''); log('파싱 오류'); }
-    });
-  }
-
-  function onParsed(res){
-    try{
-      if (!res || !Array.isArray(res.data)) { fhint.textContent='CSV 파싱 결과가 비었습니다.'; log('비어 있음'); return; }
-      const rows = res.data.filter(r => r && Object.keys(r).length && !Object.values(r).every(v => v===''||v==null));
-      const headers = (res.meta?.fields?.length? res.meta.fields : (rows[0]? Object.keys(rows[0]) : []));
-      if (!rows.length || !headers.length){ fhint.textContent='유효한 데이터/헤더 없음'; log('헤더 없음'); return; }
-
-      DATA=rows; HEADERS=headers;
-      fhint.textContent=`행 ${rows.length.toLocaleString()} · 열 ${headers.length.toLocaleString()}`;
-      nrowEl.textContent=rows.length.toLocaleString(); ncolEl.textContent=headers.length.toLocaleString();
-
-      targetSel.innerHTML=''; headers.forEach(h=>{ const o=document.createElement('option'); o.value=o.textContent=h; targetSel.appendChild(o); });
-      predsBox.innerHTML=''; headers.forEach(h=>{ const b=document.createElement('button'); b.type='button'; b.textContent=h; b.className='chip'; b.dataset.active='false';
-        b.addEventListener('click',()=>{ b.dataset.active=(b.dataset.active==='false')?'true':'false'; b.classList.toggle('active'); }); predsBox.appendChild(b); });
-
-      trainBtn.disabled=false; clearBtn.disabled=false; log('CSV 준비 완료');
-    }catch(e){ fhint.textContent='파싱 처리 오류'; log('파싱 처리 오류'); console.error(e); }
-  }
-
-  function getPreds(){
-    const acts=[...predsBox.querySelectorAll('.chip')].filter(b=> b.dataset.active==='true').map(b=> b.textContent);
-    return acts.length?acts:HEADERS.filter(h=> h!==targetSel.value);
-  }
-
-  // === 전처리: 평균 대치 + Missing 카테고리 + 표준화 ===
-  function toX(rows, cols){
-    const isCat = c => typeof rows.find(r=> r[c]!==undefined && r[c]!==null && r[c]!=='' )?.[c] === 'string';
-    const catCols = cols.filter(isCat);
-    const numCols = cols.filter(c => !catCols.includes(c));
-
-    const catMaps = {};
-    catCols.forEach(c=>{
-      const uniq = [...new Set(rows.map(r=> r[c]).map(v => (v===''||v==null)?'__MISSING__':String(v)))];
-      catMaps[c] = uniq;
-    });
-
-    const means = {};
-    numCols.forEach(c=>{
-      const vals = rows.map(r=> parseFloat(r[c])).filter(v=> Number.isFinite(v));
-      means[c] = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
-    });
-
-    const raw = rows.map(r=>{
-      const vec = [];
-      numCols.forEach(c=>{
-        const v = parseFloat(r[c]);
-        vec.push(Number.isFinite(v) ? v : means[c]);   // 수치형 결측: 평균 대치
-      });
-      catCols.forEach(c=>{
-        const cats = catMaps[c];
-        const val  = (r[c]===''||r[c]==null) ? '__MISSING__' : String(r[c]); // 범주형 결측: 'MISSING'
-        const idx  = cats.indexOf(val);
-        const oh   = new Array(cats.length).fill(0);
-        if(idx>=0) oh[idx]=1;
-        vec.push(...oh);                                  // One-hot
-      });
-      return vec;
-    });
-
-    // z-정규화
-    const dNum = numCols.length, n = raw.length;
-    const mArr=new Array(dNum).fill(0), sArr=new Array(dNum).fill(0);
-    for(let j=0;j<dNum;j++){ for(let i=0;i<n;i++) mArr[j]+=raw[i][j]; mArr[j]/=n; }
-    for(let j=0;j<dNum;j++){ let s=0; for(let i=0;i<n;i++){ const d=raw[i][j]-mArr[j]; s+=d*d; } sArr[j]=Math.sqrt(s/Math.max(1,n-1))||1; }
-    for(let i=0;i<n;i++){ for(let j=0;j<dNum;j++){ raw[i][j]=(raw[i][j]-mArr[j])/(sArr[j]||1); } }
-
-    return tf.tensor2d(raw);
-  }
-  const yVec=(rows,t)=> rows.map(r=> r[t]);
-
-  // Task 추론: 숫자 3종 이상 → 회귀, 그 외 → 이진 분류
-  function inferTask(y){
-    const u=[...new Set(y.filter(v=> v!==''&&v!=null))];
-    const allNum=u.every(v=> typeof v==='number');
-    if (!allNum) return 'bincls';
-    return u.length > 2 ? 'reg' : 'bincls';
-  }
-
-  // ROC-AUC (이진)
-  function rocAUC(y, p){
-    const pairs = p.map((s,i)=>({s, y:y[i]})).sort((a,b)=>b.s-a.s);
-    let tp=0, fp=0, fn=y.filter(v=>v===1).length, tn=y.length-fn;
-    let prev=-1, auc=0, fprPrev=0, tprPrev=0;
-    for(const r of pairs){
-      if(r.s!==prev){
-        const tpr = tp/Math.max(1, fn+tp);
-        const fpr = fp/Math.max(1, fp+tn);
-        auc += (fpr - fprPrev) * (tpr + tprPrev) / 2;
-        fprPrev=fpr; tprPrev=tpr; prev=r.s;
+  function parseCSV(text) {
+    // 간단 파서: 따옴표 포함 행 처리
+    const lines = text.replace(/\r/g,'').split('\n').filter(l => l.trim().length);
+    const out = [];
+    let headers = [];
+    const split = (line) => {
+      const res = [];
+      let cur = '', inQ = false;
+      for (let i=0; i<line.length; i++){
+        const c = line[i];
+        if (c === '"'){
+          if (inQ && line[i+1] === '"'){ cur += '"'; i++; }
+          else inQ = !inQ;
+        } else if (c === ',' && !inQ){ res.push(cur); cur=''; }
+        else cur += c;
       }
-      if(r.y===1){ tp++; fn--; } else { fp++; tn--; }
+      res.push(cur);
+      return res;
+    };
+    headers = split(lines[0]).map(h => h.trim());
+    for (let i=1; i<lines.length; i++){
+      const row = split(lines[i]);
+      const obj = {};
+      headers.forEach((h,idx) => obj[h] = row[idx] ?? '');
+      out.push(obj);
     }
-    const tpr = tp/Math.max(1, fn+tp), fpr = fp/Math.max(1, fp+tn);
-    auc += (fpr - fprPrev) * (tpr + tprPrev) / 2;
-    return Math.max(0, Math.min(1, auc));
+    return { headers, rows: out };
   }
 
-  // Youden J로 추천 임곗값
-  function suggestThreshold(y, p){
-    const uniq = Array.from(new Set(p)).sort((a,b)=>a-b);
-    let bestT=0.5, bestJ=-1;
-    for(const t of uniq){
-      const yhat = p.map(v=> v>=t?1:0);
-      let tp=0,fp=0,tn=0,fn=0;
-      for(let i=0;i<yhat.length;i++){
-        if(y[i]===1&&yhat[i]===1) tp++;
-        else if(y[i]===0&&yhat[i]===0) tn++;
-        else if(y[i]===0&&yhat[i]===1) fp++;
-        else fn++;
-      }
-      const tpr = tp/Math.max(1, tp+fn);
-      const fpr = fp/Math.max(1, fp+tn);
-      const J = tpr - fpr;
-      if(J>bestJ){ bestJ=J; bestT=t; }
+  function isNumericArray(arr){
+    let numCnt = 0, nonEmpty = 0;
+    for (const v of arr){
+      if (v === '' || v == null) continue;
+      nonEmpty++;
+      if (!isNaN(parseFloat(v))) numCnt++;
     }
-    return bestT;
+    return numCnt / Math.max(nonEmpty,1) > 0.9;
   }
 
-  async function updateClfViews(th){
-    if(!CLF_INFO) return;
-    const {ytrue, prob, testIdxArr, auc} = CLF_INFO;
-    const yhat = prob.map(v=> v>=th?1:0);
-
-    let tp=0,tn=0,fp=0,fn=0;
-    for(let i=0;i<yhat.length;i++){
-      if(ytrue[i]===1&&yhat[i]===1) tp++;
-      else if(ytrue[i]===0&&yhat[i]===0) tn++;
-      else if(ytrue[i]===0&&yhat[i]===1) fp++;
-      else fn++;
-    }
-    const acc=yhat.filter((v,i)=>v===ytrue[i]).length/Math.max(1,yhat.length);
-    const prec = tp / Math.max(1, tp+fp);
-    const rec  = tp / Math.max(1, tp+fn);
-    const f1   = (2*prec*rec) / Math.max(1e-9, (prec+rec));
-    const tpr = tp/Math.max(1,tp+fn), tnr = tn/Math.max(1,tn+fp);
-    const balAcc = (tpr + tnr)/2;
-    const posRate = ytrue.reduce((s,v)=>s+(v===1?1:0),0)/Math.max(1,ytrue.length);
-
-    metricsT.innerHTML =
-      `<tr><td>Accuracy</td><td>${acc.toFixed(3)}</td></tr>
-       <tr><td>Precision</td><td>${prec.toFixed(3)}</td></tr>
-       <tr><td>Recall</td><td>${rec.toFixed(3)}</td></tr>
-       <tr><td>F1</td><td>${f1.toFixed(3)}</td></tr>
-       <tr><td>Balanced Accuracy</td><td>${balAcc.toFixed(3)}</td></tr>
-       <tr><td>ROC-AUC</td><td>${auc.toFixed(3)}</td></tr>
-       <tr><td>Positive rate (test)</td><td>${posRate.toFixed(3)}</td></tr>
-       <tr><td>Test N</td><td>${yhat.length}</td></tr>`;
-
-    cmBox.innerHTML=
-      `<div><div class="sub">TN</div><div style="font-weight:800">${tn}</div></div>
-       <div><div class="sub">FP</div><div style="font-weight:800">${fp}</div></div>
-       <div><div class="sub">FN</div><div style="font-weight:800">${fn}</div></div>
-       <div><div class="sub">TP</div><div style="font-weight:800">${tp}</div></div>`;
-
-    // 오분류 표
-    previewT.innerHTML='';
-    const errs=[];
-    for(let i=0;i<yhat.length;i++){
-      if(yhat[i]!==ytrue[i]) errs.push({i,yt:ytrue[i],yh:yhat[i],pr:prob[i]});
-    }
-    if(errs.length===0){
-      previewT.innerHTML='<tr><td colspan="4">오분류 없음 ✅</td></tr>';
-    }else{
-      const show = Math.min(20, errs.length);
-      for(let k=0;k<show;k++){
-        const e = errs[k]; const origIdx=testIdxArr[e.i];
-        previewT.insertAdjacentHTML('beforeend',
-          `<tr><td>${origIdx}</td><td>${e.yt}</td><td>${e.yh}</td><td>${e.pr.toFixed(3)}</td></tr>`);
-      }
-    }
-
-    // 보고용(분류)
-    rTh.textContent = th.toFixed(2);
-    rTh2.textContent = th.toFixed(2);
+  function toNumberOrNa(v){
+    if (v === '' || v == null) return NaN;
+    const n = Number(v);
+    return isNaN(n) ? NaN : n;
   }
-  thEl.addEventListener('input', ()=>{ const th=(+thEl.value)/100; thLbl.textContent=th.toFixed(2); updateClfViews(th); });
 
-  $('#ml-train').addEventListener('click', async ()=>{
-    if(!DATA){ alert('CSV를 먼저 불러오세요.'); return; }
+  const median = (arr) => {
+    const a = arr.filter(v => !isNaN(v)).slice().sort((x,y)=>x-y);
+    if (!a.length) return NaN;
+    const m = Math.floor(a.length/2);
+    return a.length%2 ? a[m] : (a[m-1]+a[m])/2;
+  };
+  const mode = (arr) => {
+    const cnt = new Map();
+    for (const v of arr){ const k = (v===''||v==null)?'__NA__':String(v); cnt.set(k,(cnt.get(k)||0)+1); }
+    let best='__NA__', c=-1;
+    cnt.forEach((n,k)=>{ if(n>c){ c=n; best=k; }});
+    return best==='__NA__'? '' : best;
+  };
 
-    const target = targetSel.value;
-    const predCols = getPreds();
-    const split = parseInt(splitEl.value,10)/100;
-    const epochs = parseInt(epochsEl.value,10);
-    const batch  = parseInt(batchEl.value,10);
+  function trainTestSplit(X, y, testRatio=0.2, seed=42){
+    const n = X.length;
+    const idx = Array.from({length:n}, (_,i)=>i);
+    // simple shuffle
+    let s = seed;
+    idx.sort(()=> {
+      s = (s*9301 + 49297) % 233280;
+      return (s/233280)-0.5;
+    });
+    const nTest = Math.max(1, Math.round(n*testRatio));
+    const testIdx = new Set(idx.slice(0, nTest));
+    const Xtr=[], ytr=[], Xte=[], yte=[];
+    idx.forEach(i=>{
+      if (testIdx.has(i)){ Xte.push(X[i]); yte.push(y[i]); }
+      else { Xtr.push(X[i]); ytr.push(y[i]); }
+    });
+    return { Xtr, ytr, Xte, yte };
+  }
 
-    const rows = DATA.filter(r=> r[target]!=='' && r[target]!=null);
-    const yraw = yVec(rows,target);
-    const task = (taskSel.value==='auto') ? inferTask(yraw) : taskSel.value;
-
-    const X = toX(rows, predCols);
-    let yTensor; let y;
-    if(task==='bincls'){
-      const uniq=[...new Set(yraw.map(v=> String(v)))];
-      const pos=uniq[0]; // 기준 클래스
-      y = yraw.map(v=> (String(v)===pos)?0:1);
-      yTensor = tf.tensor2d(y.map(v=>[v]));
-    } else {
-      y = yraw.map(v=> parseFloat(v)||0);
-      yTensor = tf.tensor2d(y.map(v=>[v]));
+  function standardizeFit(X){
+    const nfeat = X[0].length;
+    const mu = Array(nfeat).fill(0), sd = Array(nfeat).fill(0);
+    for (let j=0;j<nfeat;j++){
+      let s=0, c=0;
+      for (let i=0;i<X.length;i++){ const v=X[i][j]; if(!isNaN(v)){ s+=v; c++; } }
+      mu[j] = c? s/c : 0;
+      let v=0, cc=0;
+      for (let i=0;i<X.length;i++){ const x=X[i][j]; if(!isNaN(x)){ v += (x-mu[j])**2; cc++; } }
+      sd[j] = cc? Math.sqrt(v/cc) || 1 : 1;
     }
+    const transform = (Z) => Z.map(r => r.map((v,j)=> isNaN(v)?0 : (v-mu[j])/sd[j]));
+    return { mu, sd, transform };
+  }
 
-    // 보고용 기본 채우기
-    rTask.textContent = (task==='bincls'?'Binary Classification':'Regression');
-    rSplit.textContent = `${Math.round(split*100)}% / ${100-Math.round(split*100)}%`;
-    rSplit2.textContent = rSplit.textContent;
-    rSplit3.textContent = rSplit.textContent;
-    rTarget.textContent = target || '(미지정)';
-    rFeats.textContent  = predCols.length ? predCols.join(', ') : '(전체 열)';
-    rEpochs.textContent = epochs; rBatch.textContent = batch;
-    rModel.textContent  = (task==='bincls'
-                          ? 'Dense NN (ReLU 은닉층 + Sigmoid 출력, Binary Cross-Entropy)'
-                          : 'Dense NN (ReLU 은닉층, MSE 손실)');
-
-    const n = X.shape[0];
-    const nTrain = Math.max(10, Math.floor(n*split));
-    const shuffled = tf.util.createShuffledIndices(n);
-    const trainIdx = tf.tensor1d(Array.from(shuffled.slice(0, nTrain)), 'int32');
-    const testIdx  = tf.tensor1d(Array.from(shuffled.slice(nTrain)),   'int32');
-
-    const Xtr=tf.gather(X,trainIdx), Xte=tf.gather(X,testIdx), ytr=tf.gather(yTensor,trainIdx), yte=tf.gather(yTensor,testIdx);
-
-    const model=tf.sequential(); const d=X.shape[1];
-    model.add(tf.layers.dense({units:Math.min(32,Math.max(8,Math.round(d*0.75))), inputShape:[d], activation:'relu'}));
-    if(d>12) model.add(tf.layers.dense({units:16,activation:'relu'}));
-    if(task==='bincls'){ model.add(tf.layers.dense({units:1,activation:'sigmoid'})); model.compile({optimizer:tf.train.adam(),loss:'binaryCrossentropy',metrics:['accuracy']});
-    } else { model.add(tf.layers.dense({units:1})); model.compile({optimizer:tf.train.adam(),loss:'mse',metrics:['mse']}); }
-
-    $('#ml-progress').style.display='block'; log('학습 중…');
-    await model.fit(Xtr,ytr,{epochs,batchSize:batch,shuffle:true,callbacks:{onEpochEnd:(e,l)=>{$('#ml-ptext').textContent=`epoch ${e+1}/${epochs} · loss ${l.loss.toFixed(4)}`;}}});
-    $('#ml-progress').style.display='none';
-
-    const pred=model.predict(Xte);
-    ntestEl.textContent=(Xte.shape[0]||0).toLocaleString();
-
-    if(task==='bincls'){
-      const prob=(await pred.array()).map(v=>v[0]);
-      const ytrue=(await yte.array()).map(v=>v[0]);
-      const testIdxArr = await testIdx.array();
-      const auc = rocAUC(ytrue, prob);
-      const suggest = suggestThreshold(ytrue, prob);
-
-      CLF_INFO={ytrue, prob, testIdxArr, auc, suggestTh:suggest};
-      thWrap.style.display='block';
-      thSug.textContent = suggest.toFixed(2);
-      thEl.value = Math.round(suggest*100);
-      thLbl.textContent = suggest.toFixed(2);
-      await updateClfViews(suggest);
-
-      // 변수 중요도
-      const w0=model.getWeights()[0];
-      const arr=await w0.abs().sum(1).array();
-      const vip=predCols.map((c,i)=>({name:c,score:(arr[i]||0)})).sort((a,b)=>b.score-a.score).slice(0,20);
-      vipT.innerHTML=vip.map(r=>`<tr><td>${String(r.name).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}</td><td>${r.score.toFixed(3)}</td></tr>`).join('');
-
-      // 보고용(분류)
-      rCls.style.display='block'; rReg.style.display='none';
-      rTh.textContent = suggest.toFixed(2);
-      rTh2.textContent = suggest.toFixed(2);
-      rAuc.textContent = auc.toFixed(3);
-      log('평가 완료(분류)');
-    } else {
-      const p=(await pred.array()).map(v=>v[0]); const ytrue=(await yte.array()).map(v=>v[0]);
-      const mse=p.reduce((s,v,i)=> s+(v-ytrue[i])**2,0)/Math.max(1,p.length);
-      const rmse=Math.sqrt(mse);
-      const mae=p.reduce((s,v,i)=> s+Math.abs(v-ytrue[i]),0)/Math.max(1,p.length);
-      const meanY = ytrue.reduce((s,v)=>s+v,0)/Math.max(1,ytrue.length);
-      const sst = ytrue.reduce((s,v)=>s+(v-meanY)**2,0);
-      const ssr = ytrue.reduce((s,v,i)=>s+(v-p[i])**2,0);
-      const r2 = 1 - (ssr/Math.max(1e-9,sst));
-
-      metricsT.innerHTML=
-        `<tr><td>RMSE</td><td>${rmse.toFixed(3)}</td></tr>
-         <tr><td>MAE</td><td>${mae.toFixed(3)}</td></tr>
-         <tr><td>R²</td><td>${r2.toFixed(3)}</td></tr>
-         <tr><td>Test N</td><td>${p.length}</td></tr>`;
-      cmBox.innerHTML=`<div class="sub">회귀는 혼동행렬을 사용하지 않습니다.</div>`;
-      thWrap.style.display='none';
-
-      previewT.innerHTML='';
-      const show = Math.min(20, p.length);
-      const testIdxArr = await testIdx.array();
-      for(let i=0;i<show;i++){
-        previewT.insertAdjacentHTML('beforeend',
-          `<tr><td>${testIdxArr[i]}</td><td>${ytrue[i].toFixed(3)}</td><td>${p[i].toFixed(3)}</td><td>-</td></tr>`);
+  // ---------- 간단 모델들 ----------
+  // 선형회귀(경사하강) + L2 약간
+  function fitLinear(X, y, epochs=200, lr=0.05, l2=1e-4, callback){
+    const n = X.length, p = X[0].length;
+    const w = Array(p).fill(0), b = 0;
+    for (let ep=1; ep<=epochs; ep++){
+      let db=0; const dw = Array(p).fill(0);
+      for (let i=0;i<n;i++){
+        const yhat = dot(w,X[i]) + b;
+        const e = yhat - y[i];
+        db += e;
+        for (let j=0;j<p;j++){ dw[j] += e*X[i][j]; }
       }
-
-      // 변수 중요도
-      const w0=model.getWeights()[0];
-      const arr=await w0.abs().sum(1).array();
-      const vip=predCols.map((c,i)=>({name:c,score:(arr[i]||0)})).sort((a,b)=>b.score-a.score).slice(0,20);
-      vipT.innerHTML=vip.map(r=>`<tr><td>${String(r.name).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}</td><td>${r.score.toFixed(3)}</td></tr>`).join('');
-
-      // 보고용(회귀)
-      rCls.style.display='none'; rReg.style.display='block';
-      log('평가 완료(회귀)');
+      for (let j=0;j<p;j++){
+        w[j] -= lr * ((dw[j]/n) + l2*w[j]);
+      }
+      const bNew = b - lr * (db/n);
+      // update b (without const)
+      // eslint-disable-next-line no-func-assign
+      fitLinear.b = b = bNew;
+      if (callback && ep%10===0) callback(ep);
     }
+    function predictRow(x){ return dot(w,x) + b; }
+    return { w, b, predict: (Z)=> Z.map(predictRow) };
+  }
 
-    // 자원 정리
-    trainIdx.dispose(); testIdx.dispose();
-    X.dispose(); Xtr.dispose(); Xte.dispose(); yTensor.dispose(); ytr.dispose(); yte.dispose(); pred.dispose();
+  function sigmoid(z){ return 1/(1+Math.exp(-z)); }
+  function dot(a,b){ let s=0; for (let i=0;i<a.length;i++) s+= (a[i]||0)*(b[i]||0); return s; }
+
+  // 로지스틱회귀(경사하강) + L2 약간
+  function fitLogistic(X, y, epochs=400, lr=0.05, l2=1e-4, callback){
+    const n = X.length, p = X[0].length;
+    const w = Array(p).fill(0); let b = 0;
+    for (let ep=1; ep<=epochs; ep++){
+      let db=0; const dw = Array(p).fill(0);
+      for (let i=0;i<n;i++){
+        const z = dot(w,X[i]) + b;
+        const p1 = sigmoid(z);
+        const e = p1 - y[i]; // y in {0,1}
+        db += e;
+        for (let j=0;j<p;j++){ dw[j] += e*X[i][j]; }
+      }
+      for (let j=0;j<p;j++){
+        w[j] -= lr * ((dw[j]/n) + l2*w[j]);
+      }
+      b -= lr * (db/n);
+      if (callback && ep%20===0) callback(ep);
+    }
+    const predictProba = (Z)=> Z.map(r => sigmoid(dot(w,r)+b));
+    const predict = (Z, thr=0.5)=> predictProba(Z).map(p => p>=thr?1:0);
+    return { w, b, predictProba, predict };
+  }
+
+  function mse(y, yhat){
+    let s=0, n=y.length;
+    for (let i=0;i<n;i++){ const e=yhat[i]-y[i]; s += e*e; }
+    return s/n;
+  }
+
+  function binMetrics(yTrue, yProb, thr=0.5){
+    const yPred = yProb.map(p => p>=thr?1:0);
+    let tp=0, tn=0, fp=0, fn=0;
+    for (let i=0;i<yTrue.length;i++){
+      const yt=yTrue[i], yp=yPred[i];
+      if (yt===1 && yp===1) tp++;
+      else if (yt===0 && yp===0) tn++;
+      else if (yt===0 && yp===1) fp++;
+      else if (yt===1 && yp===0) fn++;
+    }
+    const acc = (tp+tn)/Math.max(1, yTrue.length);
+    const prec = tp/Math.max(1, tp+fp);
+    const rec = tp/Math.max(1, tp+fn);
+    const f1 = (prec+rec)? (2*prec*rec/(prec+rec)) : 0;
+    return { tp, tn, fp, fn, acc, prec, rec, f1, yPred };
+  }
+
+  // ---------- 상태 ----------
+  let RAW = null;
+  let META = {
+    headers: [],
+    numericCols: [],
+    catCols: [],
+    impute: {}, // {col: {type:'num'|'cat', value:any}}
+    chosenTarget: null,
+    chosenFeatures: [],
+    task: 'auto',
+    mapTarget: null, // for bin: mapping original -> 0/1
+    invMapTarget: null,
+    scaler: null,
+    model: null,
+    isClassification: false,
+    splitRatio: 0.8
+  };
+
+  // ---------- DOM 참조 ----------
+  const fInput = $('#ml-file');
+  const chooseBtn = $('#ml-choose');
+  const nameEl = $('#ml-file-name');
+  const hintEl = $('#ml-file-hint');
+  const targetSel = $('#ml-target');
+  const predsWrap = $('#ml-preds');
+  const splitRange = $('#ml-split');
+  const splitLabel = $('#ml-split-label');
+  const taskSel = $('#ml-task');
+  const epochsInput = $('#ml-epochs');
+  const batchInput = $('#ml-batch'); // placeholder (미사용)
+  const trainBtn = $('#ml-train');
+  const clearBtn = $('#ml-clear');
+  const pWrap = $('#ml-progress');
+  const pText = $('#ml-ptext');
+  const nrowBadge = $('#ml-nrow');
+  const ncolBadge = $('#ml-ncol');
+  const ntestBadge = $('#ml-ntest');
+  const metricsBody = $('#ml-metrics');
+  const cmDiv = $('#ml-cm');
+  const vipBody = $('#ml-vip');
+  const previewBody = $('#ml-preview');
+  const thresWrap = $('#ml-thres-wrap');
+  const thresInput = $('#ml-thres');
+  const thresLabel = $('#ml-thres-label');
+  const thresSuggest = $('#ml-thres-suggest');
+  const summaryBox = $('#ml-summary');
+  const missingBox = $('#ml-missing');
+
+  // ---------- 파일 선택 ----------
+  chooseBtn.addEventListener('click', ()=> fInput.click());
+  fInput.addEventListener('change', handleFile);
+  $('#ml-drop').addEventListener('dragover', (e)=>{ e.preventDefault(); });
+  $('#ml-drop').addEventListener('drop', (e)=>{
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files[0]){
+      fInput.files = e.dataTransfer.files;
+      handleFile();
+    }
   });
+
+  function handleFile(){
+    const file = fInput.files && fInput.files[0];
+    if (!file) return;
+    nameEl.textContent = file.name;
+    hintEl.textContent = `${(file.size/1024).toFixed(1)} KB`;
+    const reader = new FileReader();
+    reader.onload = () => {
+      log('CSV 파싱 중…');
+      const { headers, rows } = parseCSV(reader.result);
+      RAW = { headers, rows };
+      resetUIAfterLoad(headers, rows);
+      log('CSV 로드 완료');
+    };
+    reader.readAsText(file, 'utf-8');
+  }
+
+  function resetUIAfterLoad(headers, rows){
+    // 컬럼 타입 파악
+    const cols = headers;
+    const colData = {};
+    cols.forEach(h => colData[h] = rows.map(r => r[h]));
+    const numericCols = [], catCols = [];
+    cols.forEach(h => (isNumericArray(colData[h]) ? numericCols : catCols).push(h));
+
+    META.headers = headers;
+    META.numericCols = numericCols;
+    META.catCols = catCols;
+    META.impute = {};
+    // 결측 대치 규칙 계산
+    for (const h of numericCols){
+      const nums = colData[h].map(toNumberOrNa);
+      META.impute[h] = { type:'num', value: median(nums) };
+    }
+    for (const h of catCols){
+      META.impute[h] = { type:'cat', value: mode(colData[h]) };
+    }
+
+    // 대상/특징 선택 초기화: 기본 타겟 후보 = 마지막 열
+    targetSel.innerHTML = headers.map(h => `<option value="${h}">${h}</option>`).join('');
+    targetSel.value = headers[headers.length-1];
+    META.chosenTarget = targetSel.value;
+
+    // 특징 칩 구성 (타겟 제외)
+    renderFeatureChips();
+
+    // 배지/스플릿
+    nrowBadge.textContent = rows.length;
+    ncolBadge.textContent = headers.length;
+    updateSplitLabel();
+
+    // 버튼 활성화
+    trainBtn.disabled = false;
+    clearBtn.disabled = false;
+
+    // 리셋 표
+    metricsBody.innerHTML = `<tr><td>—</td><td>CSV 업로드 후 실행</td></tr>`;
+    cmDiv.innerHTML = '';
+    vipBody.innerHTML = '';
+    previewBody.innerHTML = '';
+    thresWrap.style.display = 'none';
+    pWrap.style.display = 'none';
+
+    // 보고용 텍스트
+    summaryBox.textContent = `행 ${rows.length} · 열 ${headers.length} · 숫자형 ${numericCols.length} · 범주형 ${catCols.length}`;
+    missingBox.textContent = `숫자형: 중앙값(${numericCols.map(h=>`${h}`).join(', ')}) · 범주형: 최빈값(${catCols.map(h=>`${h}`).join(', ')})로 간단 대치합니다.`;
+  }
+
+  function renderFeatureChips(){
+    const feats = META.headers.filter(h => h !== META.chosenTarget);
+    META.chosenFeatures = feats.slice(); // 기본: 타깃 제외 전체
+    predsWrap.innerHTML = feats.map(h => `<span class="chip active" data-k="${h}">${h}</span>`).join('');
+    predsWrap.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', ()=>{
+        const k = chip.dataset.k;
+        const on = chip.classList.toggle('active');
+        if (on){
+          if (!META.chosenFeatures.includes(k)) META.chosenFeatures.push(k);
+        } else {
+          META.chosenFeatures = META.chosenFeatures.filter(x => x!==k);
+        }
+      });
+    });
+  }
+
+  targetSel.addEventListener('change', ()=>{
+    META.chosenTarget = targetSel.value;
+    renderFeatureChips();
+  });
+
+  splitRange.addEventListener('input', updateSplitLabel);
+  function updateSplitLabel(){
+    const v = Number(splitRange.value);
+    splitLabel.textContent = `${v}%`;
+    META.splitRatio = v/100;
+  }
+
+  taskSel.addEventListener('change', ()=> META.task = taskSel.value);
+
+  $('#ml-thres').addEventListener('input', ()=>{
+    const thr = Number(thresInput.value)/100;
+    thresLabel.textContent = thr.toFixed(2);
+    if (META.isClassification && META._lastProb){
+      // 재계산 미리보기/지표/CM
+      applyClassificationOutputs(META._lastYtrue, META._lastProb, thr);
+    }
+  });
+
+  clearBtn.addEventListener('click', ()=>{
+    RAW = null;
+    META = { headers:[], numericCols:[], catCols:[], impute:{}, chosenTarget:null, chosenFeatures:[], task:'auto',
+      mapTarget:null, invMapTarget:null, scaler:null, model:null, isClassification:false, splitRatio:0.8 };
+    $('#ml-file').value = '';
+    $('#ml-file-name').textContent = 'CSV 파일을 선택하거나 드롭하세요';
+    $('#ml-file-hint').textContent = '';
+    targetSel.innerHTML = '';
+    predsWrap.innerHTML = '';
+    metricsBody.innerHTML = `<tr><td>—</td><td>CSV 업로드 후 실행</td></tr>`;
+    cmDiv.innerHTML = '';
+    vipBody.innerHTML = '';
+    previewBody.innerHTML = '';
+    nrowBadge.textContent = '-'; ncolBadge.textContent = '-'; ntestBadge.textContent = '-';
+    thresWrap.style.display = 'none';
+    pWrap.style.display = 'none';
+    log('대기');
+  });
+
+  // ---------- 학습 ----------
+  trainBtn.addEventListener('click', async ()=>{
+    if (!RAW) return;
+    const rows = RAW.rows.slice();
+    const target = META.chosenTarget;
+    const features = (META.chosenFeatures && META.chosenFeatures.length) ? META.chosenFeatures : RAW.headers.filter(h => h!==target);
+
+    log('전처리 중…');
+    pWrap.style.display = 'block'; pText.textContent = '전처리';
+    // 결측 대치 + 숫자형만 사용(간단 버전)
+    const Xraw = rows.map(r => features.map(h => toNumberOrNa(r[h])));
+    // 숫자형 아닌 것이 섞여 있으면 NaN -> 중앙값으로
+    const medEach = [];
+    for (let j=0;j<features.length;j++){
+      const col = Xraw.map(r => r[j]);
+      medEach[j] = median(col);
+    }
+    const X = Xraw.map(r => r.map((v,j)=> isNaN(v)? medEach[j] : v));
+
+    // 타깃 처리
+    const ycol = rows.map(r => r[target]);
+    let isNumTarget = isNumericArray(ycol);
+    let y = [];
+    let isClassification = false;
+
+    if (META.task === 'reg'){
+      isClassification = false;
+      y = ycol.map(v => toNumberOrNa(v));
+    } else if (META.task === 'bincls'){
+      isClassification = true;
+    } else {
+      // auto: 고유값 수가 작으면 분류
+      const uniq = Array.from(new Set(ycol.map(v=> String(v))));
+      isClassification = uniq.length <= Math.max(2, Math.sqrt(rows.length)/2);
+      isNumTarget = isNumericArray(ycol);
+    }
+
+    if (isClassification){
+      // 이진 분류로 단순화(고유값 2개만 사용)
+      const uniq = Array.from(new Set(ycol.map(v=> String(v)))).filter(x=>x!=='');
+      if (uniq.length < 2){
+        alert('분류 수행 불가: 타깃 값이 한 종류입니다.');
+        return;
+      }
+      // 상위 2개만 사용 (희소 다범주는 간단화)
+      const cls = uniq.slice(0,2);
+      const map = {}; const inv = {};
+      map[cls[0]] = 0; map[cls[1]] = 1; inv[0]=cls[0]; inv[1]=cls[1];
+      y = ycol.map(v => map[String(v)] ?? 0);
+      META.mapTarget = map; META.invMapTarget = inv;
+    } else {
+      // 회귀
+      y = ycol.map(v => toNumberOrNa(v));
+      // 결측 타깃 제거
+      const keep = [];
+      for (let i=0;i<y.length;i++) if (!isNaN(y[i])) keep.push(i);
+      const Xk = keep.map(i => X[i]), yk = keep.map(i => y[i]);
+      while (X.length) X.pop();
+      while (y.length) y.pop();
+      X.push(...Xk); y.push(...yk);
+      META.mapTarget = null; META.invMapTarget = null;
+    }
+
+    // 표준화
+    const scaler = standardizeFit(X);
+    const Xs = scaler.transform(X);
+
+    // train/test split
+    const testRatio = 1 - META.splitRatio;
+    const { Xtr, ytr, Xte, yte } = trainTestSplit(Xs, y, testRatio);
+    ntestBadge.textContent = yte.length;
+
+    // 학습
+    META.isClassification = isClassification;
+    let model = null;
+    if (isClassification){
+      const epochs = clampInt(epochsInput.value, 20, 2000);
+      log('분류 학습 중…');
+      model = fitLogistic(Xtr, ytr, epochs, 0.08, 1e-4, (ep)=>{ pText.textContent = `분류 학습 ${ep}/${epochs}`; });
+      const prob = model.predictProba(Xte);
+      META._lastProb = prob;
+      META._lastYtrue = yte;
+      META.model = model; META.scaler = scaler;
+      // 출력
+      thresWrap.style.display = '';
+      thresSuggest.textContent = '0.50';
+      thresInput.value = 50; thresLabel.textContent = '0.50';
+      applyClassificationOutputs(yte, prob, 0.5, {features, Xte, inv: META.invMapTarget});
+      // VIP
+      renderVIP(features, model.w);
+      // 요약
+      summaryBox.textContent = `모형: Logistic (epochs=${epochs}) · 특징 ${features.length} · 테스트 ${yte.length}`;
+    } else {
+      const epochs = clampInt(epochsInput.value, 20, 2000);
+      log('회귀 학습 중…');
+      model = fitLinear(Xtr, ytr, epochs, 0.05, 1e-4, (ep)=>{ pText.textContent = `회귀 학습 ${ep}/${epochs}`; });
+      const pred = model.predict(Xte);
+      META.model = model; META.scaler = scaler;
+      // 출력
+      thresWrap.style.display = 'none';
+      renderRegMetrics(yte, pred);
+      renderPreviewRegression(yte, pred, features, Xte);
+      renderVIP(features, model.w);
+      summaryBox.textContent = `모형: Linear Regression (epochs=${epochs}) · 특징 ${features.length} · 테스트 ${yte.length}`;
+    }
+
+    log('완료');
+    pWrap.style.display = 'none';
+  });
+
+  function clampInt(v, lo, hi){
+    const n = parseInt(v||0,10);
+    return Math.max(lo, Math.min(hi, isNaN(n)? lo : n));
+  }
+
+  // ---------- 출력 렌더 ----------
+  function applyClassificationOutputs(yTrue, yProb, thr=0.5, extra){
+    const { tp, tn, fp, fn, acc, prec, rec, f1, yPred } = binMetrics(yTrue, yProb, thr);
+    // metrics
+    metricsBody.innerHTML = `
+      <tr><td>Accuracy</td><td>${acc.toFixed(4)}</td></tr>
+      <tr><td>Precision</td><td>${prec.toFixed(4)}</td></tr>
+      <tr><td>Recall</td><td>${rec.toFixed(4)}</td></tr>
+      <tr><td>F1</td><td>${f1.toFixed(4)}</td></tr>
+      <tr><td>Threshold</td><td>${thr.toFixed(2)}</td></tr>
+    `;
+    // CM
+    cmDiv.innerHTML = `
+      <div><div class="sub">TN</div><div style="font-weight:800;font-size:18px">${tn}</div></div>
+      <div><div class="sub">FP</div><div style="font-weight:800;font-size:18px">${fp}</div></div>
+      <div><div class="sub">FN</div><div style="font-weight:800;font-size:18px">${fn}</div></div>
+      <div><div class="sub">TP</div><div style="font-weight:800;font-size:18px">${tp}</div></div>
+    `;
+    // preview
+    renderPreviewClassification(yTrue, yProb, yPred, extra?.features || [], extra?.Xte || [], extra?.inv || {});
+  }
+
+  function renderVIP(features, weights){
+    const items = features.map((f,i)=>({ f, s: Math.abs(weights[i]||0) }))
+                         .sort((a,b)=> b.s - a.s)
+                         .slice(0, Math.min(20, features.length));
+    vipBody.innerHTML = items.map(it => `<tr><td>${escapeHtml(it.f)}</td><td>${it.s.toFixed(6)}</td></tr>`).join('') || `<tr><td colspan="2">-</td></tr>`;
+  }
+
+  function renderPreviewClassification(yTrue, yProb, yPred, features, Xte, inv){
+    const rows = [];
+    const topK = 3;
+    for (let i=0;i<yTrue.length;i++){
+      const yt = yTrue[i], yp = yPred[i], pp = yProb[i];
+      // 특징 간단 표시(표준화 특징이므로 원값 복원 대신 상위 feature명만)
+      const topNames = features.slice(0, topK).join(', ');
+      rows.push(`
+        <tr>
+          <td>${escapeHtml(inv?.[yt] ?? String(yt))}</td>
+          <td>${escapeHtml(inv?.[yp] ?? String(yp))}</td>
+          <td>${pp.toFixed(4)}</td>
+          <td>${escapeHtml(topNames)}</td>
+        </tr>
+      `);
+    }
+    previewBody.innerHTML = rows.join('') || `<tr><td colspan="4">-</td></tr>`;
+  }
+
+  function renderRegMetrics(yTrue, yPred){
+    const _mse = mse(yTrue, yPred);
+    const rmse = Math.sqrt(_mse);
+    // MAE
+    let mae=0; for (let i=0;i<yTrue.length;i++) mae += Math.abs(yPred[i]-yTrue[i]); mae/=yTrue.length||1;
+    // R^2
+    const meanY = yTrue.reduce((a,b)=>a+b,0)/(yTrue.length||1);
+    let ssTot=0, ssRes=0;
+    for (let i=0;i<yTrue.length;i++){
+      ssRes += (yTrue[i]-yPred[i])**2;
+      ssTot += (yTrue[i]-meanY)**2;
+    }
+    const r2 = 1 - (ssRes/Math.max(ssTot, 1e-12));
+    metricsBody.innerHTML = `
+      <tr><td>RMSE</td><td>${rmse.toFixed(6)}</td></tr>
+      <tr><td>MAE</td><td>${mae.toFixed(6)}</td></tr>
+      <tr><td>MSE</td><td>${_mse.toFixed(6)}</td></tr>
+      <tr><td>R²</td><td>${r2.toFixed(6)}</td></tr>
+    `;
+    cmDiv.innerHTML = `<div class="sub" style="grid-column:1/-1">회귀문제는 혼동행렬이 적용되지 않습니다.</div>`;
+  }
+
+  function renderPreviewRegression(yTrue, yPred, features, Xte){
+    const rows = [];
+    const topNames = features.slice(0,3).join(', ');
+    for (let i=0;i<yTrue.length;i++){
+      rows.push(`
+        <tr>
+          <td>${yTrue[i].toFixed(4)}</td>
+          <td>${yPred[i].toFixed(4)}</td>
+          <td>—</td>
+          <td>${escapeHtml(topNames)}</td>
+        </tr>
+      `);
+    }
+    previewBody.innerHTML = rows.join('') || `<tr><td colspan="4">-</td></tr>`;
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  // 초기 상태
+  log('대기');
 })();
 </script>
