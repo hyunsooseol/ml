@@ -22,7 +22,7 @@
   .ml .grid{display:grid;grid-template-columns:1.4fr .8fr;gap:20px}
   @media (max-width:960px){.ml .grid{grid-template-columns:1fr}}
   .ml .panel{border:1px solid var(--br);border-radius:14px;padding:14px}
-  .ml label{display:block;font-size:13px;color:var(--dim);margin-bottom:6px}
+  .ml label{display:block;font-size:13px;color:#2b3345;margin-bottom:6px}
   .ml select,.ml input[type=number],.ml input[type=range]{width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;font-size:14px}
   .ml .chips{display:flex;flex-wrap:wrap;gap:8px}
   .ml .chip{padding:6px 10px;border-radius:999px;border:1px solid #e5e7eb;font-size:12px;cursor:pointer}
@@ -48,7 +48,6 @@
     <div class="h2">분석 시작</div>
     <p class="sub">CSV를 선택하면 아래 설정이 활성화됩니다. (데이터는 브라우저에서만 처리)</p>
 
-    <!-- 업로더 -->
     <label class="uploader" id="ml-drop">
       <div style="display:flex;align-items:center;gap:12px">
         <strong id="ml-file-name">CSV 파일을 선택하거나 드롭하세요</strong>
@@ -61,11 +60,9 @@
       <input id="ml-file" type="file" accept=".csv,text/csv">
     </label>
 
-    <!-- 상태 로그 -->
     <div class="log" id="ml-log">상태: 대기</div>
 
     <div class="grid" style="margin-top:18px">
-      <!-- 좌 -->
       <div class="panel">
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
           <div><label>문제 유형</label>
@@ -103,7 +100,6 @@
         <div id="ml-progress" class="sub" style="margin-top:8px;display:none">학습 중… <span id="ml-ptext"></span></div>
       </div>
 
-      <!-- 우 -->
       <div class="panel">
         <div class="kpis">
           <div class="kpi"><b>행 수</b><div id="ml-nrow" class="val">-</div></div>
@@ -196,7 +192,7 @@
     Papa.parse(f, {
       header:true, dynamicTyping:true, skipEmptyLines:'greedy',
       delimiter:'', encoding:'UTF-8',
-      worker:false,              // ✅ 핵심: 웹워커 비활성화 (CSP 충돌 회피)
+      worker:false,
       complete:onParsed,
       error:(err)=>{ fhint.textContent='CSV 파싱 실패: '+(err?.message||''); log('파싱 오류'); }
     });
@@ -221,8 +217,10 @@
     }catch(e){ fhint.textContent='파싱 처리 오류'; log('파싱 처리 오류'); console.error(e); }
   }
 
-  function getPreds(){ const acts=[...predsBox.querySelectorAll('.chip')].filter(b=> b.dataset.active==='true').map(b=> b.textContent);
-    return acts.length?acts:HEADERS.filter(h=> h!==targetSel.value); }
+  function getPreds(){
+    const acts=[...predsBox.querySelectorAll('.chip')].filter(b=> b.dataset.active==='true').map(b=> b.textContent);
+    return acts.length?acts:HEADERS.filter(h=> h!==targetSel.value);
+  }
 
   function toX(rows, cols){
     const isCat=c=> typeof rows.find(r=> r[c]!==undefined && r[c]!==null && r[c]!=='' )?.[c] === 'string';
@@ -237,18 +235,38 @@
     return tf.tensor2d(X);
   }
   function yVec(rows,t){ return rows.map(r=> r[t]); }
-  function inferTask(y){ const u=[...new Set(y.filter(v=> v!==''&&v!=null))]; const allNum=u.every(v=> typeof v==='number'); return (allNum?(u.length<=2?'bincls':'reg'):(u.length<=2?'bincls':'reg')); }
+  function inferTask(y){
+    const u=[...new Set(y.filter(v=> v!==''&&v!=null))];
+    const allNum=u.every(v=> typeof v==='number');
+    return (allNum?(u.length<=2?'bincls':'reg'):(u.length<=2?'bincls':'reg'));
+  }
 
   $('#ml-train').addEventListener('click', async ()=>{
     if(!DATA){ alert('CSV를 먼저 불러오세요.'); return; }
-    const target=targetSel.value, cols=getPreds();
-    const split=parseInt(splitEl.value,10)/100, epochs=parseInt(epochsEl.value,10), batch=parseInt(batchEl.value,10);
-    const rows=DATA.filter(r=> r[target]!=='' && r[target]!=null);
-    const yraw=yVec(rows,target); const task=(taskSel.value==='auto')?inferTask(yraw):taskSel.value;
 
-    const X=toX(rows,cols); let yTensor; let y;
-    if(task==='bincls'){ const uniq=[...new Set(yraw.map(v=> String(v)))]; const pos=uniq[0]; y=yraw.map(v=> (String(v)===pos)?0:1); yTensor=tf.tensor2d(y.map(v=>[v]));
-    } else { y=yraw.map(v=> parseFloat(v)||0); yTensor=tf.tensor2d(y.map(v=>[v])); }
+    // ⬇️ 여기부터: cols 재선언 문제 수정 → predCols로 명확히
+    const target = targetSel.value;
+    const predCols = getPreds();
+
+    const split = parseInt(splitEl.value,10)/100;
+    const epochs = parseInt(epochsEl.value,10);
+    const batch  = parseInt(batchEl.value,10);
+
+    const rows = DATA.filter(r=> r[target]!=='' && r[target]!=null);
+    const yraw = yVec(rows,target);
+    const task = (taskSel.value==='auto') ? inferTask(yraw) : taskSel.value;
+
+    const X = toX(rows, predCols);
+    let yTensor; let y;
+    if(task==='bincls'){
+      const uniq=[...new Set(yraw.map(v=> String(v)))];
+      const pos=uniq[0];
+      y = yraw.map(v=> (String(v)===pos)?0:1);
+      yTensor = tf.tensor2d(y.map(v=>[v]));
+    } else {
+      y = yraw.map(v=> parseFloat(v)||0);
+      yTensor = tf.tensor2d(y.map(v=>[v]));
+    }
 
     const n=X.shape[0], nTrain=Math.max(10, Math.floor(n*split)), idx=tf.util.createShuffledIndices(n);
     const trainIdx=idx.slice(0,nTrain), testIdx=idx.slice(nTrain);
@@ -285,8 +303,11 @@
       log('평가 완료(회귀)');
     }
 
-    const w0=model.getWeights()[0]; const arr=await w0.abs().sum(1).array(); const cols=getPreds();
-    const vip=cols.map((c,i)=>({name:c,score:(arr[i]||0)})).sort((a,b)=>b.score-a.score).slice(0,12);
+    // ⬇️ 여기도 predCols 사용
+    const w0=model.getWeights()[0];
+    const arr=await w0.abs().sum(1).array();
+    const vip=predCols.map((c,i)=>({name:c,score:(arr[i]||0)}))
+                      .sort((a,b)=>b.score-a.score).slice(0,12);
     vipT.innerHTML=vip.map(r=>`<tr><td>${String(r.name).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}</td><td>${r.score.toFixed(3)}</td></tr>`).join('');
 
     X.dispose();Xtr.dispose();Xte.dispose();yTensor.dispose();ytr.dispose();yte.dispose();pred.dispose();
