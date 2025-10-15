@@ -1,8 +1,8 @@
-<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (결과 하단 가로배치 · 핵심결과만) -->
+<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (결과 하단 가로배치 · ROC-AUC · 임곗값 슬라이더) -->
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700;900&display=swap');
   .ml, .ml *{font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; box-sizing:border-box}
-  .ml{--navy:#0f2e59; --cobalt:#174a8c; --text:#0F172A; --dim:#475569; --card:#fff; --br:#e6ecf4; --r-xl:20px; --r-lg:14px}
+  .ml{--navy:#0f2e59; --cobalt:#174a8c; --text:#0F172A; --dim:#475569; --card:#fff; --br:#e6ecf4; --r-xl:20px}
   .ml .hero{max-width:1120px;margin:24px auto 32px;padding:52px 22px 46px;color:#fff;text-align:center;border-radius:var(--r-xl);
     background:radial-gradient(900px 380px at 10% -20%, rgba(23,74,140,.35), transparent 60%),
                radial-gradient(800px 420px at 100% 0%, rgba(0,178,255,.16), transparent 60%),
@@ -23,21 +23,19 @@
   .ml .btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(0,0,0,.08)}
   .ml .btn.primary{color:#fff;background:linear-gradient(90deg,#0f2e59,#174a8c);border:none}
 
-  /* 입력 영역: 한 줄 카드 */
-  .ml .controls{display:grid;grid-template-columns:1fr;gap:16px}
-  .ml .panel{border:1px solid var(--br);border-radius:14px;padding:14px}
+  /* 업로더: 전체 클릭/드롭, 네이티브 버튼 숨김 */
+  .ml .uploader{position:relative;border:1px dashed #cbd5e1;border-radius:14px;background:#fafcff;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer}
+  .ml .uploader input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
 
-  /* 상단 배지 */
+  /* 입력 패널 */
+  .ml .panel{border:1px solid var(--br);border-radius:14px;padding:14px}
+  .ml .controls{display:grid;grid-template-columns:1fr;gap:16px}
   .ml .badges{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 0}
   .ml .badge{font-size:12px;border:1px solid #e5e7eb;border-radius:999px;padding:6px 10px;background:#f8fafc}
 
   /* 결과 레이아웃: 하단 가로 배치 */
   .ml .results{margin-top:18px}
-  .ml .results-grid{
-    display:grid;
-    grid-template-columns: 1.1fr 1fr 1fr; /* 지표 · 혼동행렬 · 중요도/오분류 */
-    gap:16px;
-  }
+  .ml .results-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:16px}
   @media (max-width:1100px){ .ml .results-grid{grid-template-columns:1fr 1fr} }
   @media (max-width:760px){ .ml .results-grid{grid-template-columns:1fr} }
 
@@ -66,13 +64,12 @@
     <div class="h2">분석 시작</div>
     <p class="sub">CSV를 선택하면 아래 설정이 활성화됩니다. (데이터는 브라우저에서만 처리)</p>
 
-    <!-- 업로더 -->
-    <label class="panel" id="ml-drop" style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fafcff;border:1px dashed #cbd5e1;">
+    <!-- 업로더 (버튼 제거, 전체 클릭/드롭) -->
+    <label class="uploader" id="ml-drop">
       <div style="display:flex;align-items:center;gap:12px">
         <strong id="ml-file-name">CSV 파일을 선택하거나 드롭하세요</strong>
         <span class="sub" id="ml-file-hint"></span>
       </div>
-      <div><button type="button" class="btn">파일 선택</button></div>
       <input id="ml-file" type="file" accept=".csv,text/csv" />
     </label>
 
@@ -128,6 +125,19 @@
   <!-- 결과 카드 (하단 가로 배치) -->
   <div class="card results">
     <div class="h2">결과</div>
+
+    <!-- ✅ 임곗값 슬라이더: 분류일 때만 노출 -->
+    <div id="ml-thres-wrap" class="panel" style="display:none;margin-bottom:12px">
+      <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+        <div style="min-width:220px">
+          <label>Decision Threshold</label>
+          <input id="ml-thres" type="range" min="1" max="99" value="50">
+          <div class="sub">현재 <b id="ml-thres-label">0.50</b> (추천: <span id="ml-thres-suggest">-</span>)</div>
+        </div>
+        <div class="sub">임곗값을 조정하면 혼동행렬과 정밀도/재현율이 즉시 반영됩니다.</div>
+      </div>
+    </div>
+
     <div class="results-grid">
       <!-- 1) 핵심 지표 -->
       <div class="panel">
@@ -191,17 +201,21 @@
   const trainBtn=$('#ml-train'), clearBtn=$('#ml-clear');
   const nrowEl=$('#ml-nrow'), ncolEl=$('#ml-ncol'), ntestEl=$('#ml-ntest');
   const metricsT=$('#ml-metrics'), cmBox=$('#ml-cm'), vipT=$('#ml-vip'), previewT=$('#ml-preview');
+  const thWrap=$('#ml-thres-wrap'), thEl=$('#ml-thres'), thLbl=$('#ml-thres-label'), thSug=$('#ml-thres-suggest');
 
   let DATA=null, HEADERS=[];
+  let CLF_INFO=null; // {ytrue, prob, testIdxArr, suggestTh}
+
   splitEl.addEventListener('input', e=> splitLbl.textContent = e.target.value + '%');
 
   function resetAll(){
-    DATA=null; HEADERS=[];
+    DATA=null; HEADERS=[]; CLF_INFO=null;
     fname.textContent='CSV 파일을 선택하거나 드롭하세요'; fhint.textContent='';
     nrowEl.textContent='-'; ncolEl.textContent='-'; ntestEl.textContent='-';
     targetSel.innerHTML=''; predsBox.innerHTML='';
     metricsT.innerHTML='<tr><td>—</td><td>CSV 업로드 후 실행</td></tr>';
     cmBox.innerHTML=''; vipT.innerHTML=''; previewT.innerHTML='';
+    thWrap.style.display='none';
     trainBtn.disabled=true; clearBtn.disabled=true;
     log('대기');
   }
@@ -212,8 +226,6 @@
   const drop=$('#ml-drop');
   ;['dragenter','dragover','dragleave','drop'].forEach(ev=> drop.addEventListener(ev, e=>{e.preventDefault();e.stopPropagation();}));
   drop.addEventListener('drop', (e)=>{ const f=e.dataTransfer.files?.[0]; if(f){ handleFile(f); } });
-
-  // 파일 선택
   file.addEventListener('change', ()=>{ const f=file.files?.[0]; if(f){ handleFile(f); } });
 
   function handleFile(f){
@@ -251,27 +263,161 @@
     return acts.length?acts:HEADERS.filter(h=> h!==targetSel.value);
   }
 
-  // 인코딩 + 표준화
+  // === 전처리: 평균 대치 + Missing 카테고리 + 표준화 ===
   function toX(rows, cols){
-    const isCat=c=> typeof rows.find(r=> r[c]!==undefined && r[c]!==null && r[c]!=='' )?.[c] === 'string';
-    const catCols=cols.filter(isCat), numCols=cols.filter(c=>!catCols.includes(c));
-    const catMaps={}; catCols.forEach(c=>{ catMaps[c]=[...new Set(rows.map(r=> r[c]).filter(v=> v!==''&&v!=null))]; });
-    const X=[]; rows.forEach(r=>{ let v=[]; numCols.forEach(c=>{ const val=parseFloat(r[c]); v.push(isFinite(val)?val:0); });
-      catCols.forEach(c=>{ const cats=catMaps[c]; const idx=cats.indexOf(r[c]); const oh=new Array(cats.length).fill(0); if(idx>=0) oh[idx]=1; v.push(...oh); }); X.push(v); });
-    const means=new Array(X[0].length).fill(0), stds=new Array(X[0].length).fill(0);
-    for(let j=0;j<X[0].length;j++){ for(let i=0;i<X.length;i++) means[j]+=X[i][j]; means[j]/=X.length; }
-    for(let j=0;j<X[0].length;j++){ let s=0; for(let i=0;i<X.length;i++){ const d=X[i][j]-means[j]; s+=d*d; } stds[j]=Math.sqrt(s/(X.length-1)||1); }
-    for(let i=0;i<X.length;i++){ for(let j=0;j<X[0].length;j++){ X[i][j]=(X[i][j]-means[j])/(stds[j]||1); } }
-    return tf.tensor2d(X);
+    const isCat = c => typeof rows.find(r=> r[c]!==undefined && r[c]!==null && r[c]!=='' )?.[c] === 'string';
+    const catCols = cols.filter(isCat);
+    const numCols = cols.filter(c => !catCols.includes(c));
+
+    const catMaps = {};
+    catCols.forEach(c=>{
+      const uniq = [...new Set(rows.map(r=> r[c]).map(v => (v===''||v==null)?'__MISSING__':String(v)))];
+      catMaps[c] = uniq;
+    });
+
+    const means = {}, stds = {};
+    numCols.forEach(c=>{
+      const vals = rows.map(r=> parseFloat(r[c])).filter(v=> Number.isFinite(v));
+      means[c] = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+    });
+
+    const raw = rows.map(r=>{
+      const vec = [];
+      numCols.forEach(c=>{
+        const v = parseFloat(r[c]);
+        vec.push(Number.isFinite(v) ? v : means[c]);
+      });
+      catCols.forEach(c=>{
+        const cats = catMaps[c];
+        const val  = (r[c]===''||r[c]==null) ? '__MISSING__' : String(r[c]);
+        const idx  = cats.indexOf(val);
+        const oh   = new Array(cats.length).fill(0);
+        if(idx>=0) oh[idx]=1;
+        vec.push(...oh);
+      });
+      return vec;
+    });
+
+    const dNum = numCols.length, n = raw.length;
+    const mArr=new Array(dNum).fill(0), sArr=new Array(dNum).fill(0);
+    for(let j=0;j<dNum;j++){ for(let i=0;i<n;i++) mArr[j]+=raw[i][j]; mArr[j]/=n; }
+    for(let j=0;j<dNum;j++){ let s=0; for(let i=0;i<n;i++){ const d=raw[i][j]-mArr[j]; s+=d*d; } sArr[j]=Math.sqrt(s/Math.max(1,n-1))||1; }
+    for(let i=0;i<n;i++){ for(let j=0;j<dNum;j++){ raw[i][j]=(raw[i][j]-mArr[j])/(sArr[j]||1); } }
+
+    return tf.tensor2d(raw);
   }
   const yVec=(rows,t)=> rows.map(r=> r[t]);
 
+  // 간단 Task 추론: 숫자 3종 이상 → 회귀, 그 외(문자/이진 숫자) → 이진분류
   function inferTask(y){
     const u=[...new Set(y.filter(v=> v!==''&&v!=null))];
     const allNum=u.every(v=> typeof v==='number');
     if (!allNum) return 'bincls';
     return u.length > 2 ? 'reg' : 'bincls';
   }
+
+  // ROC-AUC 계산(이진)
+  function rocAUC(y, p){
+    const pairs = p.map((s,i)=>({s, y:y[i]})).sort((a,b)=>b.s-a.s);
+    let tp=0, fp=0, fn=y.filter(v=>v===1).length, tn=y.length-fn;
+    let prev=-1, auc=0, fprPrev=0, tprPrev=0;
+    for(const r of pairs){
+      if(r.s!==prev){
+        const tpr = tp/Math.max(1, fn+tp);
+        const fpr = fp/Math.max(1, fp+tn);
+        auc += (fpr - fprPrev) * (tpr + tprPrev) / 2; // trapz
+        fprPrev=fpr; tprPrev=tpr; prev=r.s;
+      }
+      if(r.y===1){ tp++; fn--; } else { fp++; tn--; }
+    }
+    const tpr = tp/Math.max(1, fn+tp);
+    const fpr = fp/Math.max(1, fp+tn);
+    auc += (fpr - fprPrev) * (tpr + tprPrev) / 2;
+    return Math.max(0, Math.min(1, auc));
+  }
+
+  // 추천 임곗값(Youden J: TPR-FPR 최대)
+  function suggestThreshold(y, p){
+    const uniq = Array.from(new Set(p)).sort((a,b)=>a-b);
+    let bestT=0.5, bestJ=-1;
+    for(const t of uniq){
+      const yhat = p.map(v=> v>=t?1:0);
+      let tp=0,fp=0,tn=0,fn=0;
+      for(let i=0;i<yhat.length;i++){
+        if(y[i]===1&&yhat[i]===1) tp++;
+        else if(y[i]===0&&yhat[i]===0) tn++;
+        else if(y[i]===0&&yhat[i]===1) fp++;
+        else fn++;
+      }
+      const tpr = tp/Math.max(1, tp+fn);
+      const fpr = fp/Math.max(1, fp+tn);
+      const J = tpr - fpr;
+      if(J>bestJ){ bestJ=J; bestT=t; }
+    }
+    return bestT;
+  }
+
+  // 임곗값 적용 후 뷰 업데이트(분류)
+  async function updateClfViews(th){
+    if(!CLF_INFO) return;
+    const {ytrue, prob, testIdxArr} = CLF_INFO;
+    const yhat = prob.map(v=> v>=th?1:0);
+
+    let tp=0,tn=0,fp=0,fn=0;
+    for(let i=0;i<yhat.length;i++){
+      if(ytrue[i]===1&&yhat[i]===1) tp++;
+      else if(ytrue[i]===0&&yhat[i]===0) tn++;
+      else if(ytrue[i]===0&&yhat[i]===1) fp++;
+      else fn++;
+    }
+    const acc=yhat.filter((v,i)=>v===ytrue[i]).length/Math.max(1,yhat.length);
+    const prec = tp / Math.max(1, tp+fp);
+    const rec  = tp / Math.max(1, tp+fn);
+    const f1   = (2*prec*rec) / Math.max(1e-9, (prec+rec));
+    const posRate = ytrue.reduce((s,v)=>s+(v===1?1:0),0)/Math.max(1,ytrue.length);
+    const tpr = tp/Math.max(1,tp+fn), tnr = tn/Math.max(1,tn+fp);
+    const balAcc = (tpr + tnr)/2;
+
+    metricsT.innerHTML =
+      `<tr><td>Accuracy</td><td>${acc.toFixed(3)}</td></tr>
+       <tr><td>Precision</td><td>${prec.toFixed(3)}</td></tr>
+       <tr><td>Recall</td><td>${rec.toFixed(3)}</td></tr>
+       <tr><td>F1</td><td>${f1.toFixed(3)}</td></tr>
+       <tr><td>Balanced Accuracy</td><td>${balAcc.toFixed(3)}</td></tr>
+       <tr><td>ROC-AUC</td><td>${CLF_INFO.auc.toFixed(3)}</td></tr>
+       <tr><td>Positive rate (test)</td><td>${posRate.toFixed(3)}</td></tr>
+       <tr><td>Test N</td><td>${yhat.length}</td></tr>`;
+
+    cmBox.innerHTML=
+      `<div><div class="sub">TN</div><div style="font-weight:800">${tn}</div></div>
+       <div><div class="sub">FP</div><div style="font-weight:800">${fp}</div></div>
+       <div><div class="sub">FN</div><div style="font-weight:800">${fn}</div></div>
+       <div><div class="sub">TP</div><div style="font-weight:800">${tp}</div></div>`;
+
+    // 오분류 표
+    previewT.innerHTML='';
+    const errs=[];
+    for(let i=0;i<yhat.length;i++){
+      if(yhat[i]!==ytrue[i]) errs.push({i,yt:ytrue[i],yh:yhat[i],pr:prob[i]});
+    }
+    if(errs.length===0){
+      previewT.innerHTML='<tr><td colspan="4">오분류 없음 ✅</td></tr>';
+    }else{
+      const show = Math.min(20, errs.length);
+      for(let k=0;k<show;k++){
+        const e = errs[k]; const origIdx=testIdxArr[e.i];
+        previewT.insertAdjacentHTML('beforeend',
+          `<tr><td>${origIdx}</td><td>${e.yt}</td><td>${e.yh}</td><td>${e.pr.toFixed(3)}</td></tr>`);
+      }
+    }
+  }
+
+  // 슬라이더 이벤트
+  thEl.addEventListener('input', ()=> {
+    const th = (+thEl.value)/100;
+    thLbl.textContent = th.toFixed(2);
+    updateClfViews(th);
+  });
 
   $('#ml-train').addEventListener('click', async ()=>{
     if(!DATA){ alert('CSV를 먼저 불러오세요.'); return; }
@@ -317,59 +463,35 @@
     await model.fit(Xtr,ytr,{epochs,batchSize:batch,shuffle:true,callbacks:{onEpochEnd:(e,l)=>{$('#ml-ptext').textContent=`epoch ${e+1}/${epochs} · loss ${l.loss.toFixed(4)}`;}}});
     $('#ml-progress').style.display='none';
 
-    const pred=model.predict(Xte); ntestEl.textContent=(Xte.shape[0]||0).toLocaleString();
-    previewT.innerHTML=''; // reset
+    const pred=model.predict(Xte);
+    ntestEl.textContent=(Xte.shape[0]||0).toLocaleString();
 
+    // 예측/평가
     if(task==='bincls'){
-      const p=(await pred.array()).map(v=>v[0]); 
-      const ytrue=(await yte.array()).map(v=>v[0]); 
-      const yhat=p.map(v=> v>=0.5?1:0);
-
-      let tp=0,tn=0,fp=0,fn=0; 
-      for(let i=0;i<yhat.length;i++){
-        if(ytrue[i]===1&&yhat[i]===1)tp++; else if(ytrue[i]===0&&yhat[i]===0)tn++; 
-        else if(ytrue[i]===0&&yhat[i]===1)fp++; else fn++;
-      }
-      const acc=yhat.filter((v,i)=>v===ytrue[i]).length/Math.max(1,yhat.length);
-      const prec = tp / Math.max(1, tp+fp);
-      const rec  = tp / Math.max(1, tp+fn);
-      const f1   = (2*prec*rec) / Math.max(1e-9, (prec+rec));
-      const posRate = ytrue.reduce((s,v)=>s+(v===1?1:0),0) / Math.max(1,ytrue.length);
-
-      metricsT.innerHTML =
-        `<tr><td>Accuracy</td><td>${acc.toFixed(3)}</td></tr>
-         <tr><td>Precision</td><td>${prec.toFixed(3)}</td></tr>
-         <tr><td>Recall</td><td>${rec.toFixed(3)}</td></tr>
-         <tr><td>F1</td><td>${f1.toFixed(3)}</td></tr>
-         <tr><td>Positive rate (test)</td><td>${posRate.toFixed(3)}</td></tr>
-         <tr><td>Test N</td><td>${yhat.length}</td></tr>`;
-
-      cmBox.innerHTML=
-        `<div><div class="sub">TN</div><div style="font-weight:800">${tn}</div></div>
-         <div><div class="sub">FP</div><div style="font-weight:800">${fp}</div></div>
-         <div><div class="sub">FN</div><div style="font-weight:800">${fn}</div></div>
-         <div><div class="sub">TP</div><div style="font-weight:800">${tp}</div></div>`;
-
-      // 오분류만 표시(최대 20개)
-      const errs=[];
-      for(let i=0;i<yhat.length;i++){
-        if(yhat[i]!==ytrue[i]) errs.push({i,yt:ytrue[i],yh:yhat[i],pr:p[i]});
-      }
-      if(errs.length===0){
-        previewT.innerHTML='<tr><td colspan="4">오분류 없음 ✅</td></tr>';
-      }else{
-        const show = Math.min(20, errs.length);
-        const testArr = await testIdx.array();
-        for(let k=0;k<show;k++){
-          const e = errs[k]; const origIdx=testArr[e.i];
-          previewT.insertAdjacentHTML('beforeend',
-            `<tr><td>${origIdx}</td><td>${e.yt}</td><td>${e.yh}</td><td>${e.pr.toFixed(3)}</td></tr>`);
-        }
-      }
-      log('평가 완료(분류)');
-    } else {
-      const p=(await pred.array()).map(v=>v[0]); 
+      const prob=(await pred.array()).map(v=>v[0]);
       const ytrue=(await yte.array()).map(v=>v[0]);
+      const testIdxArr = await testIdx.array();
+      const auc = rocAUC(ytrue, prob);
+      const suggest = suggestThreshold(ytrue, prob);
+
+      // 전역 저장 + 임곗값 UI 노출
+      CLF_INFO={ytrue, prob, testIdxArr, auc, suggestTh:suggest};
+      thWrap.style.display='block';
+      thSug.textContent = suggest.toFixed(2);
+
+      // 변수 중요도
+      const w0=model.getWeights()[0];
+      const arr=await w0.abs().sum(1).array();
+      const vip=predCols.map((c,i)=>({name:c,score:(arr[i]||0)})).sort((a,b)=>b.score-a.score).slice(0,20);
+      vipT.innerHTML=vip.map(r=>`<tr><td>${String(r.name).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}</td><td>${r.score.toFixed(3)}</td></tr>`).join('');
+
+      // 초기 임곗값(0.5)로 뷰 구성
+      thEl.value = 50; thLbl.textContent='0.50';
+      await updateClfViews(0.5);
+      log('평가 완료(분류)');
+
+    } else {
+      const p=(await pred.array()).map(v=>v[0]); const ytrue=(await yte.array()).map(v=>v[0]);
       const mse=p.reduce((s,v,i)=> s+(v-ytrue[i])**2,0)/Math.max(1,p.length);
       const rmse=Math.sqrt(mse);
       const mae=p.reduce((s,v,i)=> s+Math.abs(v-ytrue[i]),0)/Math.max(1,p.length);
@@ -384,22 +506,25 @@
          <tr><td>R²</td><td>${r2.toFixed(3)}</td></tr>
          <tr><td>Test N</td><td>${p.length}</td></tr>`;
       cmBox.innerHTML=`<div class="sub">회귀는 혼동행렬을 사용하지 않습니다.</div>`;
+      thWrap.style.display='none';
 
-      // 예측 미리보기 (상위 20개)
+      // 예측 미리보기
+      previewT.innerHTML='';
       const show = Math.min(20, p.length);
-      const testArr = await testIdx.array();
+      const testIdxArr = await testIdx.array();
       for(let i=0;i<show;i++){
         previewT.insertAdjacentHTML('beforeend',
-          `<tr><td>${testArr[i]}</td><td>${ytrue[i].toFixed(3)}</td><td>${p[i].toFixed(3)}</td><td>-</td></tr>`);
+          `<tr><td>${testIdxArr[i]}</td><td>${ytrue[i].toFixed(3)}</td><td>${p[i].toFixed(3)}</td><td>-</td></tr>`);
       }
+
+      // 변수 중요도
+      const w0=model.getWeights()[0];
+      const arr=await w0.abs().sum(1).array();
+      const vip=predCols.map((c,i)=>({name:c,score:(arr[i]||0)})).sort((a,b)=>b.score-a.score).slice(0,20);
+      vipT.innerHTML=vip.map(r=>`<tr><td>${String(r.name).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}</td><td>${r.score.toFixed(3)}</td></tr>`).join('');
+
       log('평가 완료(회귀)');
     }
-
-    // 변수 중요도
-    const w0=model.getWeights()[0];
-    const arr=await w0.abs().sum(1).array();
-    const vip=predCols.map((c,i)=>({name:c,score:(arr[i]||0)})).sort((a,b)=>b.score-a.score).slice(0,20);
-    vipT.innerHTML=vip.map(r=>`<tr><td>${String(r.name).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}</td><td>${r.score.toFixed(3)}</td></tr>`).join('');
 
     // 자원 정리
     trainIdx.dispose(); testIdx.dispose();
