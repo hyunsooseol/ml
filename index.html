@@ -1,4 +1,4 @@
-<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (Iteration 표기 · 내부 스크롤 B형 · 통합본) -->
+<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (Iteration · 내부 스크롤 · details 클릭 패치 · 통합본) -->
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700;900&display=swap');
 
@@ -49,16 +49,15 @@
   @media (max-width:1100px){ .ml .results-grid{grid-template-columns:1fr 1fr} }
   @media (max-width:760px){ .ml .results-grid{grid-template-columns:1fr} }
 
-  /* ★ 내부 스크롤 B형: 표 안에서 세로 스크롤 허용 */
+  /* 표: 내부 세로 스크롤 허용 */
   .ml .table-wrap{
     border:1px solid #e9eef5; border-radius:14px;
     overflow-y:auto; overflow-x:auto;
-    max-height:420px; /* 필요에 맞게 높이 조정 가능 */
+    max-height:420px;
     display:block;
     -webkit-overflow-scrolling:touch;
   }
   .ml table{width:100%; border-collapse:separate; border-spacing:0; font-size:14px; min-width:560px}
-  /* sticky 비활성(임베드 충돌 방지) */
   .ml thead th{background:#f8fafc;color:#2b3345;font-weight:800;text-align:left;padding:10px;border-bottom:1px solid #e9eef5; position:static}
   .ml tbody td{padding:10px;border-top:1px solid #eef2f7; word-break:break-word}
 
@@ -70,12 +69,18 @@
   .ml .log{margin-top:10px;border:1px dashed #cbd5e1;border-radius:12px;background:#fbfdff;padding:10px;font-size:12px;color:#0b1220;white-space:pre-wrap}
 
   .ml .report{border:1px solid var(--br);border-radius:14px;background:#f9fbff}
-  .ml details{border-top:1px solid #e6edf7}
+
+  /* details 클릭 겹침 방지 패치 */
+  .ml details{border-top:1px solid #e6edf7; position:relative; overflow:hidden;}
   .ml details:first-of-type{border-top:none}
-  .ml summary{ list-style:none; cursor:pointer; padding:14px 16px; font-weight:800; color:#0f2e59; display:flex; align-items:center; justify-content:space-between; }
+  .ml summary{
+    list-style:none; cursor:pointer; padding:14px 16px; font-weight:800; color:#0f2e59;
+    display:block; position:relative; z-index:2;
+  }
   .ml summary::-webkit-details-marker{display:none}
+  .ml details[open]>summary{border-bottom:1px solid #e6edf7}
   .ml .caret{font-weight:900; opacity:.5}
-  .ml .report .content{padding:12px 16px 16px; color:#0f172a; line-height:1.75; font-size:14px}
+  .ml .report .content{padding:12px 16px 16px; color:#0f172a; line-height:1.75; font-size:14px; position:relative; z-index:1}
 
   .ml .jump{display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 0}
 </style>
@@ -237,8 +242,9 @@
       <details>
         <summary>설명변수 중요도 산출 방식 <span class="caret">▾</span></summary>
         <div class="content">
-          분류(Logistic): 표준화 후 가중치 절대값 기준 정렬 ·
-          회귀(Linear): 표준화 후 회귀계수 절대값 기준 정렬.
+          분류(Logistic): 표준화 후 가중치 절대값 |w_j| 기준 정렬 ·
+          회귀(Linear): 표준화 후 회귀계수 절대값 |β_j| 기준 정렬.
+          (표준화는 변수 단위 차이를 제거하여 중요도 비교를 가능하게 합니다.)
         </div>
       </details>
     </div>
@@ -303,7 +309,6 @@
   const dot=(a,b)=>{let s=0; for(let i=0;i<a.length;i++) s+=(a[i]||0)*(b[i]||0); return s; };
   const sigmoid=(z)=> 1/(1+Math.exp(-z));
 
-  // Linear Regression (MSE) — L2(작게) + GD
   function fitLinear(X,y,iterations=200,lr=0.05,l2=1e-4,cb){
     const n=X.length,p=X[0].length; const w=Array(p).fill(0); let b=0;
     for(let it=1;it<=iterations;it++){
@@ -316,7 +321,6 @@
     return { w,b,predict, iterations };
   }
 
-  // Logistic Regression (Cross-Entropy) — L2(작게) + GD
   function fitLogistic(X,y,iterations=400,lr=0.05,l2=1e-4,cb){
     const n=X.length,p=X[0].length; const w=Array(p).fill(0); let b=0;
     for(let it=1;it<=iterations;it++){
@@ -334,7 +338,7 @@
   function binMetrics(yTrue,yProb,thr=0.5){
     const yPred=yProb.map(p=> p>=thr?1:0);
     let tp=0,tn=0,fp=0,fn=0;
-    for(let i=0;i<yTrue.length;i++){           /* ← 정확한 루프 */
+    for(let i=0;i<yTrue.length;i++){
       const yt=yTrue[i], yp=yPred[i];
       if(yt===1 && yp===1) tp++;
       else if(yt===0 && yp===0) tn++;
@@ -600,4 +604,3 @@
   log('대기');
 })();
 </script>
-
