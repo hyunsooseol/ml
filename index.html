@@ -1,8 +1,7 @@
-<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (배너 제거 · 내부 스크롤 제거 A형) -->
+<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (배너 제거 · 내부 스크롤 제거 A형 · FIXED) -->
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700;900&display=swap');
 
-  /* 전역: 가로 스크롤바/여분 여백 방지 */
   html, body { margin:0; overflow-x:hidden; }
   .ml, .ml *{font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; box-sizing:border-box}
   .ml{
@@ -25,7 +24,6 @@
   .ml .btn.ghost{background:#fff;border-color:#e2e8f0}
   .ml .btn.ghost:hover{box-shadow:0 6px 16px rgba(2,6,23,.06)}
 
-  /* 업로더: 아이콘+문구(좌), 파일선택 버튼(우) */
   .ml .uploader{
     position:relative;border:1px dashed #cbd5e1;border-radius:14px;background:#fafcff;padding:14px 16px;
     display:flex;align-items:center;justify-content:space-between;gap:12px
@@ -38,56 +36,42 @@
   .ml .uploader strong{font-weight:800}
   .ml .uploader small{color:#64748b}
 
-  /* 입력 패널 & 배지 */
   .ml .panel{border:1px solid var(--br);border-radius:14px;padding:14px}
   .ml .controls{display:grid;grid-template-columns:1fr;gap:16px}
   .ml .badges{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 0}
   .ml .badge{font-size:12px;border:1px solid #e5e7eb;border-radius:999px;padding:6px 10px;background:#f8fafc}
 
-  /* 결과 레이아웃: 하단 가로 배치 */
   .ml .results{margin-top:18px}
   .ml .results-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:16px}
   @media (max-width:1100px){ .ml .results-grid{grid-template-columns:1fr 1fr} }
   @media (max-width:760px){ .ml .results-grid{grid-template-columns:1fr} }
 
   /* ★ A형: 내부 스크롤 제거 */
-  .ml .table-wrap{
-    border:1px solid #e9eef5;
-    border-radius:14px;
-    overflow:visible;
-    max-height:none;
-  }
+  .ml .table-wrap{ border:1px solid #e9eef5;border-radius:14px;overflow:visible;max-height:none; }
   .ml table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
   .ml thead th{position:sticky;top:0;background:#f8fafc;color:#2b3345;font-weight:800;text-align:left;padding:10px;border-bottom:1px solid #e9eef5}
   .ml tbody td{padding:10px;border-top:1px solid #eef2f7}
 
-  /* Confusion Matrix */
   .ml .cm{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
   .ml .cm > div{border:1px solid #e5e7eb;border-radius:12px;padding:12px;text-align:center}
   .ml .cm .sub{font-size:11px;color:#64748b}
 
   .ml .log{margin-top:10px;border:1px dashed #cbd5e1;border-radius:12px;background:#fbfdff;padding:10px;font-size:12px;color:#0b1220;white-space:pre-wrap}
 
-  /* ── 논문 보고용: 접기(accordion) ── */
   .ml .report{border:1px solid var(--br);border-radius:14px;background:#f9fbff}
   .ml details{border-top:1px solid #e6edf7}
   .ml details:first-of-type{border-top:none}
-  .ml summary{
-    list-style:none; cursor:pointer; padding:14px 16px; font-weight:800; color:#0f2e59;
-    display:flex; align-items:center; justify-content:space-between;
-  }
+  .ml summary{ list-style:none; cursor:pointer; padding:14px 16px; font-weight:800; color:#0f2e59; display:flex; align-items:center; justify-content:space-between; }
   .ml summary::-webkit-details-marker{display:none}
   .ml .caret{font-weight:900; opacity:.5}
   .ml .report .content{padding:12px 16px 16px; color:#0f172a; line-height:1.75; font-size:14px}
 </style>
 
 <section class="ml" id="ml-app">
-  <!-- 입력/설정 카드 (배너 제거 후 바로 시작) -->
   <div class="card">
     <div class="h2">분석 시작</div>
     <p class="sub">CSV를 선택하면 아래 설정이 활성화됩니다. (데이터는 브라우저에서만 처리)</p>
 
-    <!-- 업로더 -->
     <div class="uploader" id="ml-drop">
       <div class="uploader-left">
         <span class="uploader-icon" aria-hidden="true">
@@ -153,11 +137,10 @@
     </div>
   </div>
 
-  <!-- 결과 카드 -->
+  <!-- 결과 -->
   <div class="card results">
     <div class="h2">결과</div>
 
-    <!-- 임곗값 슬라이더(분류일 때만) -->
     <div id="ml-thres-wrap" class="panel" style="display:none;margin-bottom:12px">
       <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
         <div style="min-width:220px">
@@ -170,7 +153,6 @@
     </div>
 
     <div class="results-grid">
-      <!-- 1) 핵심 지표 -->
       <div class="panel">
         <div class="h2" style="font-size:16px;margin-bottom:6px">핵심 지표</div>
         <div class="table-wrap">
@@ -181,13 +163,11 @@
         </div>
       </div>
 
-      <!-- 2) Confusion Matrix -->
       <div class="panel">
         <div class="h2" style="font-size:16px;margin-bottom:6px">Confusion Matrix</div>
         <div id="ml-cm" class="cm"></div>
       </div>
 
-      <!-- 3) Feature Importance -->
       <div class="panel">
         <div class="h2" style="font-size:16px;margin-bottom:6px">Feature Importance</div>
         <div class="table-wrap">
@@ -198,7 +178,6 @@
         </div>
       </div>
 
-      <!-- 4) 오분류/예측 미리보기 -->
       <div class="panel" style="grid-column: 1 / -1">
         <div class="h2" style="font-size:16px;margin-bottom:6px">예측 미리보기</div>
         <div class="table-wrap">
@@ -217,28 +196,19 @@
       </div>
     </div>
 
-    <!-- 논문 보고용 접기 -->
     <div class="report panel" style="margin-top:14px">
       <details open>
-        <summary>
-          처리/모형 요약 <span class="caret">▾</span>
-        </summary>
-        <div class="content" id="ml-summary">
-          CSV 업로드 후 요약이 표시됩니다.
-        </div>
+        <summary>처리/모형 요약 <span class="caret">▾</span></summary>
+        <div class="content" id="ml-summary">CSV 업로드 후 요약이 표시됩니다.</div>
       </details>
       <details>
-        <summary>
-          결측치 처리 <span class="caret">▾</span>
-        </summary>
+        <summary>결측치 처리 <span class="caret">▾</span></summary>
         <div class="content" id="ml-missing">
           숫자형: 중앙값 대치 · 범주형: 최빈값 대치(간단 규칙) — 상세 내역은 업로드 후 표기됩니다.
         </div>
       </details>
       <details>
-        <summary>
-          특징 중요도 산출 방식 <span class="caret">▾</span>
-        </summary>
+        <summary>특징 중요도 산출 방식 <span class="caret">▾</span></summary>
         <div class="content">
           분류(Logistic): 절대 가중치 | 회귀(Linear): 절대 회귀계수 기준으로 정렬해 상위 항목을 표기합니다.
         </div>
@@ -249,13 +219,11 @@
 
 <script>
 (() => {
-  // ---------- 유틸 ----------
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => document.querySelectorAll(sel);
   const log = (msg) => { const el = $('#ml-log'); el.textContent = '상태: ' + msg; };
 
   function parseCSV(text) {
-    // 간단 파서: 따옴표 포함 행 처리
     const lines = text.replace(/\r/g,'').split('\n').filter(l => l.trim().length);
     const out = [];
     let headers = [];
@@ -292,12 +260,7 @@
     }
     return numCnt / Math.max(nonEmpty,1) > 0.9;
   }
-
-  function toNumberOrNa(v){
-    if (v === '' || v == null) return NaN;
-    const n = Number(v);
-    return isNaN(n) ? NaN : n;
-  }
+  function toNumberOrNa(v){ if (v === '' || v == null) return NaN; const n = Number(v); return isNaN(n) ? NaN : n; }
 
   const median = (arr) => {
     const a = arr.filter(v => !isNaN(v)).slice().sort((x,y)=>x-y);
@@ -308,20 +271,15 @@
   const mode = (arr) => {
     const cnt = new Map();
     for (const v of arr){ const k = (v===''||v==null)?'__NA__':String(v); cnt.set(k,(cnt.get(k)||0)+1); }
-    let best='__NA__', c=-1;
-    cnt.forEach((n,k)=>{ if(n>c){ c=n; best=k; }});
+    let best='__NA__', c=-1; cnt.forEach((n,k)=>{ if(n>c){ c=n; best=k; }});
     return best==='__NA__'? '' : best;
   };
 
   function trainTestSplit(X, y, testRatio=0.2, seed=42){
     const n = X.length;
     const idx = Array.from({length:n}, (_,i)=>i);
-    // simple shuffle
     let s = seed;
-    idx.sort(()=> {
-      s = (s*9301 + 49297) % 233280;
-      return (s/233280)-0.5;
-    });
+    idx.sort(()=> { s = (s*9301 + 49297) % 233280; return (s/233280)-0.5; });
     const nTest = Math.max(1, Math.round(n*testRatio));
     const testIdx = new Set(idx.slice(0, nTest));
     const Xtr=[], ytr=[], Xte=[], yte=[];
@@ -347,11 +305,14 @@
     return { mu, sd, transform };
   }
 
-  // ---------- 간단 모델들 ----------
-  // 선형회귀(경사하강) + L2 약간
+  /* ====== 간단 모델들 (FIXED) ====== */
+  function dot(a,b){ let s=0; for (let i=0;i<a.length;i++) s+= (a[i]||0)*(b[i]||0); return s; }
+  function sigmoid(z){ return 1/(1+Math.exp(-z)); }
+
+  // 선형회귀(경사하강) — b를 let으로 선언 (버그 Fix)
   function fitLinear(X, y, epochs=200, lr=0.05, l2=1e-4, callback){
     const n = X.length, p = X[0].length;
-    const w = Array(p).fill(0), b = 0;
+    const w = Array(p).fill(0); let b = 0;
     for (let ep=1; ep<=epochs; ep++){
       let db=0; const dw = Array(p).fill(0);
       for (let i=0;i<n;i++){
@@ -360,23 +321,15 @@
         db += e;
         for (let j=0;j<p;j++){ dw[j] += e*X[i][j]; }
       }
-      for (let j=0;j<p;j++){
-        w[j] -= lr * ((dw[j]/n) + l2*w[j]);
-      }
-      const bNew = b - lr * (db/n);
-      // update b (without const)
-      // eslint-disable-next-line no-func-assign
-      fitLinear.b = b = bNew;
+      for (let j=0;j<p;j++){ w[j] -= lr * ((dw[j]/n) + l2*w[j]); }
+      b -= lr * (db/n);
       if (callback && ep%10===0) callback(ep);
     }
-    function predictRow(x){ return dot(w,x) + b; }
-    return { w, b, predict: (Z)=> Z.map(predictRow) };
+    const predict = (Z)=> Z.map(r => dot(w,r) + b);
+    return { w, b, predict };
   }
 
-  function sigmoid(z){ return 1/(1+Math.exp(-z)); }
-  function dot(a,b){ let s=0; for (let i=0;i<a.length;i++) s+= (a[i]||0)*(b[i]||0); return s; }
-
-  // 로지스틱회귀(경사하강) + L2 약간
+  // 로지스틱 회귀
   function fitLogistic(X, y, epochs=400, lr=0.05, l2=1e-4, callback){
     const n = X.length, p = X[0].length;
     const w = Array(p).fill(0); let b = 0;
@@ -385,13 +338,11 @@
       for (let i=0;i<n;i++){
         const z = dot(w,X[i]) + b;
         const p1 = sigmoid(z);
-        const e = p1 - y[i]; // y in {0,1}
+        const e = p1 - y[i];
         db += e;
         for (let j=0;j<p;j++){ dw[j] += e*X[i][j]; }
       }
-      for (let j=0;j<p;j++){
-        w[j] -= lr * ((dw[j]/n) + l2*w[j]);
-      }
+      for (let j=0;j<p;j++){ w[j] -= lr * ((dw[j]/n) + l2*w[j]); }
       b -= lr * (db/n);
       if (callback && ep%20===0) callback(ep);
     }
@@ -400,16 +351,11 @@
     return { w, b, predictProba, predict };
   }
 
-  function mse(y, yhat){
-    let s=0, n=y.length;
-    for (let i=0;i<n;i++){ const e=yhat[i]-y[i]; s += e*e; }
-    return s/n;
-  }
-
+  function mse(y, yhat){ let s=0, n=y.length; for (let i=0;i<n;i++){ const e=yhat[i]-y[i]; s += e*e; } return s/n; }
   function binMetrics(yTrue, yProb, thr=0.5){
     const yPred = yProb.map(p => p>=thr?1:0);
     let tp=0, tn=0, fp=0, fn=0;
-    for (let i=0;i<yTrue.length;i++){
+    for (let i=0;i+yTrue.length>i;i++){
       const yt=yTrue[i], yp=yPred[i];
       if (yt===1 && yp===1) tp++;
       else if (yt===0 && yp===0) tn++;
@@ -423,25 +369,12 @@
     return { tp, tn, fp, fn, acc, prec, rec, f1, yPred };
   }
 
-  // ---------- 상태 ----------
+  /* ====== 상태 ====== */
   let RAW = null;
-  let META = {
-    headers: [],
-    numericCols: [],
-    catCols: [],
-    impute: {}, // {col: {type:'num'|'cat', value:any}}
-    chosenTarget: null,
-    chosenFeatures: [],
-    task: 'auto',
-    mapTarget: null, // for bin: mapping original -> 0/1
-    invMapTarget: null,
-    scaler: null,
-    model: null,
-    isClassification: false,
-    splitRatio: 0.8
-  };
+  let META = { headers:[], numericCols:[], catCols:[], impute:{}, chosenTarget:null, chosenFeatures:[], task:'auto',
+    mapTarget:null, invMapTarget:null, scaler:null, model:null, isClassification:false, splitRatio:0.8 };
 
-  // ---------- DOM 참조 ----------
+  /* ====== DOM ====== */
   const fInput = $('#ml-file');
   const chooseBtn = $('#ml-choose');
   const nameEl = $('#ml-file-name');
@@ -452,7 +385,6 @@
   const splitLabel = $('#ml-split-label');
   const taskSel = $('#ml-task');
   const epochsInput = $('#ml-epochs');
-  const batchInput = $('#ml-batch'); // placeholder (미사용)
   const trainBtn = $('#ml-train');
   const clearBtn = $('#ml-clear');
   const pWrap = $('#ml-progress');
@@ -471,7 +403,7 @@
   const summaryBox = $('#ml-summary');
   const missingBox = $('#ml-missing');
 
-  // ---------- 파일 선택 ----------
+  /* ====== 업로더 ====== */
   chooseBtn.addEventListener('click', ()=> fInput.click());
   fInput.addEventListener('change', handleFile);
   $('#ml-drop').addEventListener('dragover', (e)=>{ e.preventDefault(); });
@@ -490,331 +422,223 @@
     hintEl.textContent = `${(file.size/1024).toFixed(1)} KB`;
     const reader = new FileReader();
     reader.onload = () => {
-      log('CSV 파싱 중…');
-      const { headers, rows } = parseCSV(reader.result);
-      RAW = { headers, rows };
-      resetUIAfterLoad(headers, rows);
-      log('CSV 로드 완료');
+      try{
+        log('CSV 파싱 중…');
+        const { headers, rows } = parseCSV(reader.result);
+        RAW = { headers, rows };
+        resetUIAfterLoad(headers, rows);
+        log('CSV 로드 완료');
+      }catch(err){
+        console.error(err); log('CSV 파싱 오류');
+      }
     };
     reader.readAsText(file, 'utf-8');
   }
 
   function resetUIAfterLoad(headers, rows){
-    // 컬럼 타입 파악
     const cols = headers;
-    const colData = {};
-    cols.forEach(h => colData[h] = rows.map(r => r[h]));
+    const colData = {}; cols.forEach(h => colData[h] = rows.map(r => r[h]));
     const numericCols = [], catCols = [];
     cols.forEach(h => (isNumericArray(colData[h]) ? numericCols : catCols).push(h));
 
-    META.headers = headers;
-    META.numericCols = numericCols;
-    META.catCols = catCols;
-    META.impute = {};
-    // 결측 대치 규칙 계산
-    for (const h of numericCols){
-      const nums = colData[h].map(toNumberOrNa);
-      META.impute[h] = { type:'num', value: median(nums) };
-    }
-    for (const h of catCols){
-      META.impute[h] = { type:'cat', value: mode(colData[h]) };
-    }
+    META.headers = headers; META.numericCols = numericCols; META.catCols = catCols; META.impute = {};
+    for (const h of numericCols){ const nums = colData[h].map(toNumberOrNa); META.impute[h] = { type:'num', value: median(nums) }; }
+    for (const h of catCols){ META.impute[h] = { type:'cat', value: mode(colData[h]) }; }
 
-    // 대상/특징 선택 초기화: 기본 타겟 후보 = 마지막 열
     targetSel.innerHTML = headers.map(h => `<option value="${h}">${h}</option>`).join('');
     targetSel.value = headers[headers.length-1];
     META.chosenTarget = targetSel.value;
 
-    // 특징 칩 구성 (타겟 제외)
     renderFeatureChips();
 
-    // 배지/스플릿
     nrowBadge.textContent = rows.length;
     ncolBadge.textContent = headers.length;
     updateSplitLabel();
 
-    // 버튼 활성화
     trainBtn.disabled = false;
     clearBtn.disabled = false;
 
-    // 리셋 표
     metricsBody.innerHTML = `<tr><td>—</td><td>CSV 업로드 후 실행</td></tr>`;
-    cmDiv.innerHTML = '';
-    vipBody.innerHTML = '';
-    previewBody.innerHTML = '';
-    thresWrap.style.display = 'none';
-    pWrap.style.display = 'none';
+    cmDiv.innerHTML = ''; vipBody.innerHTML = ''; previewBody.innerHTML = '';
+    thresWrap.style.display = 'none'; pWrap.style.display = 'none';
 
-    // 보고용 텍스트
     summaryBox.textContent = `행 ${rows.length} · 열 ${headers.length} · 숫자형 ${numericCols.length} · 범주형 ${catCols.length}`;
-    missingBox.textContent = `숫자형: 중앙값(${numericCols.map(h=>`${h}`).join(', ')}) · 범주형: 최빈값(${catCols.map(h=>`${h}`).join(', ')})로 간단 대치합니다.`;
+    missingBox.textContent = `숫자형: 중앙값(${numericCols.join(', ')}) · 범주형: 최빈값(${catCols.join(', ')})로 간단 대치합니다.`;
   }
 
   function renderFeatureChips(){
     const feats = META.headers.filter(h => h !== META.chosenTarget);
-    META.chosenFeatures = feats.slice(); // 기본: 타깃 제외 전체
+    META.chosenFeatures = feats.slice();
     predsWrap.innerHTML = feats.map(h => `<span class="chip active" data-k="${h}">${h}</span>`).join('');
     predsWrap.querySelectorAll('.chip').forEach(chip => {
       chip.addEventListener('click', ()=>{
         const k = chip.dataset.k;
         const on = chip.classList.toggle('active');
-        if (on){
-          if (!META.chosenFeatures.includes(k)) META.chosenFeatures.push(k);
-        } else {
-          META.chosenFeatures = META.chosenFeatures.filter(x => x!==k);
-        }
+        if (on){ if (!META.chosenFeatures.includes(k)) META.chosenFeatures.push(k); }
+        else { META.chosenFeatures = META.chosenFeatures.filter(x => x!==k); }
       });
     });
   }
 
-  targetSel.addEventListener('change', ()=>{
-    META.chosenTarget = targetSel.value;
-    renderFeatureChips();
-  });
-
-  splitRange.addEventListener('input', updateSplitLabel);
-  function updateSplitLabel(){
-    const v = Number(splitRange.value);
-    splitLabel.textContent = `${v}%`;
-    META.splitRatio = v/100;
-  }
-
-  taskSel.addEventListener('change', ()=> META.task = taskSel.value);
-
+  targetSel.addEventListener('change', ()=>{ META.chosenTarget = targetSel.value; renderFeatureChips(); });
+  function updateSplitLabel(){ const v = Number($('#ml-split').value); $('#ml-split-label').textContent = `${v}%`; META.splitRatio = v/100; }
+  $('#ml-split').addEventListener('input', updateSplitLabel);
+  $('#ml-task').addEventListener('change', ()=> META.task = $('#ml-task').value);
   $('#ml-thres').addEventListener('input', ()=>{
-    const thr = Number(thresInput.value)/100;
-    thresLabel.textContent = thr.toFixed(2);
-    if (META.isClassification && META._lastProb){
-      // 재계산 미리보기/지표/CM
-      applyClassificationOutputs(META._lastYtrue, META._lastProb, thr);
-    }
+    const thr = Number(thresInput.value)/100; thresLabel.textContent = thr.toFixed(2);
+    if (META.isClassification && META._lastProb){ applyClassificationOutputs(META._lastYtrue, META._lastProb, thr); }
   });
 
-  clearBtn.addEventListener('click', ()=>{
+  $('#ml-clear').addEventListener('click', ()=>{
     RAW = null;
     META = { headers:[], numericCols:[], catCols:[], impute:{}, chosenTarget:null, chosenFeatures:[], task:'auto',
       mapTarget:null, invMapTarget:null, scaler:null, model:null, isClassification:false, splitRatio:0.8 };
-    $('#ml-file').value = '';
-    $('#ml-file-name').textContent = 'CSV 파일을 선택하거나 드롭하세요';
-    $('#ml-file-hint').textContent = '';
-    targetSel.innerHTML = '';
-    predsWrap.innerHTML = '';
+    $('#ml-file').value = ''; $('#ml-file-name').textContent = 'CSV 파일을 선택하거나 드롭하세요'; $('#ml-file-hint').textContent = '';
+    targetSel.innerHTML = ''; predsWrap.innerHTML = '';
     metricsBody.innerHTML = `<tr><td>—</td><td>CSV 업로드 후 실행</td></tr>`;
-    cmDiv.innerHTML = '';
-    vipBody.innerHTML = '';
-    previewBody.innerHTML = '';
+    cmDiv.innerHTML = ''; vipBody.innerHTML = ''; previewBody.innerHTML = '';
     nrowBadge.textContent = '-'; ncolBadge.textContent = '-'; ntestBadge.textContent = '-';
-    thresWrap.style.display = 'none';
-    pWrap.style.display = 'none';
-    log('대기');
+    thresWrap.style.display = 'none'; pWrap.style.display = 'none'; log('대기');
   });
 
-  // ---------- 학습 ----------
-  trainBtn.addEventListener('click', async ()=>{
-    if (!RAW) return;
-    const rows = RAW.rows.slice();
-    const target = META.chosenTarget;
-    const features = (META.chosenFeatures && META.chosenFeatures.length) ? META.chosenFeatures : RAW.headers.filter(h => h!==target);
+  $('#ml-train').addEventListener('click', async ()=>{
+    try{
+      if (!RAW) return;
+      const rows = RAW.rows.slice();
+      const target = META.chosenTarget;
+      const features = (META.chosenFeatures && META.chosenFeatures.length) ? META.chosenFeatures : RAW.headers.filter(h => h!==target);
 
-    log('전처리 중…');
-    pWrap.style.display = 'block'; pText.textContent = '전처리';
-    // 결측 대치 + 숫자형만 사용(간단 버전)
-    const Xraw = rows.map(r => features.map(h => toNumberOrNa(r[h])));
-    // 숫자형 아닌 것이 섞여 있으면 NaN -> 중앙값으로
-    const medEach = [];
-    for (let j=0;j<features.length;j++){
-      const col = Xraw.map(r => r[j]);
-      medEach[j] = median(col);
-    }
-    const X = Xraw.map(r => r.map((v,j)=> isNaN(v)? medEach[j] : v));
+      log('전처리 중…'); pWrap.style.display = 'block'; $('#ml-ptext').textContent = '전처리';
+      const Xraw = rows.map(r => features.map(h => toNumberOrNa(r[h])));
+      const medEach = []; for (let j=0;j<features.length;j++){ medEach[j] = median(Xraw.map(r => r[j])); }
+      const X = Xraw.map(r => r.map((v,j)=> isNaN(v)? medEach[j] : v));
 
-    // 타깃 처리
-    const ycol = rows.map(r => r[target]);
-    let isNumTarget = isNumericArray(ycol);
-    let y = [];
-    let isClassification = false;
+      const ycol = rows.map(r => r[target]);
+      let y = [], isClassification = false;
 
-    if (META.task === 'reg'){
-      isClassification = false;
-      y = ycol.map(v => toNumberOrNa(v));
-    } else if (META.task === 'bincls'){
-      isClassification = true;
-    } else {
-      // auto: 고유값 수가 작으면 분류
-      const uniq = Array.from(new Set(ycol.map(v=> String(v))));
-      isClassification = uniq.length <= Math.max(2, Math.sqrt(rows.length)/2);
-      isNumTarget = isNumericArray(ycol);
-    }
-
-    if (isClassification){
-      // 이진 분류로 단순화(고유값 2개만 사용)
-      const uniq = Array.from(new Set(ycol.map(v=> String(v)))).filter(x=>x!=='');
-      if (uniq.length < 2){
-        alert('분류 수행 불가: 타깃 값이 한 종류입니다.');
-        return;
+      if (META.task === 'reg'){
+        isClassification = false; y = ycol.map(v => toNumberOrNa(v));
+      } else if (META.task === 'bincls'){
+        isClassification = true;
+      } else {
+        const uniq = Array.from(new Set(ycol.map(v=> String(v))));
+        isClassification = uniq.length <= Math.max(2, Math.sqrt(rows.length)/2);
       }
-      // 상위 2개만 사용 (희소 다범주는 간단화)
-      const cls = uniq.slice(0,2);
-      const map = {}; const inv = {};
-      map[cls[0]] = 0; map[cls[1]] = 1; inv[0]=cls[0]; inv[1]=cls[1];
-      y = ycol.map(v => map[String(v)] ?? 0);
-      META.mapTarget = map; META.invMapTarget = inv;
-    } else {
-      // 회귀
-      y = ycol.map(v => toNumberOrNa(v));
-      // 결측 타깃 제거
-      const keep = [];
-      for (let i=0;i<y.length;i++) if (!isNaN(y[i])) keep.push(i);
-      const Xk = keep.map(i => X[i]), yk = keep.map(i => y[i]);
-      while (X.length) X.pop();
-      while (y.length) y.pop();
-      X.push(...Xk); y.push(...yk);
-      META.mapTarget = null; META.invMapTarget = null;
+
+      if (isClassification){
+        const uniq = Array.from(new Set(ycol.map(v=> String(v)))).filter(x=>x!=='');
+        if (uniq.length < 2){ alert('분류 수행 불가: 타깃 값이 한 종류입니다.'); return; }
+        const cls = uniq.slice(0,2);
+        const map = {}; const inv = {}; map[cls[0]]=0; map[cls[1]]=1; inv[0]=cls[0]; inv[1]=cls[1];
+        y = ycol.map(v => map[String(v)] ?? 0);
+        META.mapTarget = map; META.invMapTarget = inv;
+      } else {
+        y = ycol.map(v => toNumberOrNa(v));
+        const keep = []; for (let i=0;i<y.length;i++) if (!isNaN(y[i])) keep.push(i);
+        const Xk = keep.map(i => X[i]), yk = keep.map(i => y[i]); X.length=0; y.length=0; X.push(...Xk); y.push(...yk);
+        META.mapTarget = null; META.invMapTarget = null;
+      }
+
+      const scaler = standardizeFit(X); const Xs = scaler.transform(X);
+      const testRatio = 1 - META.splitRatio;
+      const { Xtr, ytr, Xte, yte } = trainTestSplit(Xs, y, testRatio);
+      ntestBadge.textContent = yte.length;
+
+      META.isClassification = isClassification;
+      if (isClassification){
+        const epochs = clampInt($('#ml-epochs').value, 20, 2000);
+        log('분류 학습 중…');
+        const model = fitLogistic(Xtr, ytr, epochs, 0.08, 1e-4, (ep)=>{ $('#ml-ptext').textContent = `분류 학습 ${ep}/${epochs}`; });
+        const prob = model.predictProba(Xte);
+        META._lastProb = prob; META._lastYtrue = yte; META.model = model; META.scaler = scaler;
+        thresWrap.style.display = ''; thresSuggest.textContent = '0.50'; thresInput.value = 50; thresLabel.textContent = '0.50';
+        applyClassificationOutputs(yte, prob, 0.5, {features, Xte, inv: META.invMapTarget});
+        renderVIP(features, model.w);
+        summaryBox.textContent = `모형: Logistic (epochs=${epochs}) · 특징 ${features.length} · 테스트 ${yte.length}`;
+      } else {
+        const epochs = clampInt($('#ml-epochs').value, 20, 2000);
+        log('회귀 학습 중…');
+        const model = fitLinear(Xtr, ytr, epochs, 0.05, 1e-4, (ep)=>{ $('#ml-ptext').textContent = `회귀 학습 ${ep}/${epochs}`; });
+        const pred = model.predict(Xte);
+        META.model = model; META.scaler = scaler;
+        thresWrap.style.display = 'none';
+        renderRegMetrics(yte, pred);
+        renderPreviewRegression(yte, pred, features, Xte);
+        renderVIP(features, model.w);
+        summaryBox.textContent = `모형: Linear Regression (epochs=${epochs}) · 특징 ${features.length} · 테스트 ${yte.length}`;
+      }
+
+      log('완료'); pWrap.style.display = 'none';
+    }catch(err){
+      console.error(err); log('오류: ' + (err?.message || err));
+      pWrap.style.display = 'none';
     }
-
-    // 표준화
-    const scaler = standardizeFit(X);
-    const Xs = scaler.transform(X);
-
-    // train/test split
-    const testRatio = 1 - META.splitRatio;
-    const { Xtr, ytr, Xte, yte } = trainTestSplit(Xs, y, testRatio);
-    ntestBadge.textContent = yte.length;
-
-    // 학습
-    META.isClassification = isClassification;
-    let model = null;
-    if (isClassification){
-      const epochs = clampInt(epochsInput.value, 20, 2000);
-      log('분류 학습 중…');
-      model = fitLogistic(Xtr, ytr, epochs, 0.08, 1e-4, (ep)=>{ pText.textContent = `분류 학습 ${ep}/${epochs}`; });
-      const prob = model.predictProba(Xte);
-      META._lastProb = prob;
-      META._lastYtrue = yte;
-      META.model = model; META.scaler = scaler;
-      // 출력
-      thresWrap.style.display = '';
-      thresSuggest.textContent = '0.50';
-      thresInput.value = 50; thresLabel.textContent = '0.50';
-      applyClassificationOutputs(yte, prob, 0.5, {features, Xte, inv: META.invMapTarget});
-      // VIP
-      renderVIP(features, model.w);
-      // 요약
-      summaryBox.textContent = `모형: Logistic (epochs=${epochs}) · 특징 ${features.length} · 테스트 ${yte.length}`;
-    } else {
-      const epochs = clampInt(epochsInput.value, 20, 2000);
-      log('회귀 학습 중…');
-      model = fitLinear(Xtr, ytr, epochs, 0.05, 1e-4, (ep)=>{ pText.textContent = `회귀 학습 ${ep}/${epochs}`; });
-      const pred = model.predict(Xte);
-      META.model = model; META.scaler = scaler;
-      // 출력
-      thresWrap.style.display = 'none';
-      renderRegMetrics(yte, pred);
-      renderPreviewRegression(yte, pred, features, Xte);
-      renderVIP(features, model.w);
-      summaryBox.textContent = `모형: Linear Regression (epochs=${epochs}) · 특징 ${features.length} · 테스트 ${yte.length}`;
-    }
-
-    log('완료');
-    pWrap.style.display = 'none';
   });
 
-  function clampInt(v, lo, hi){
-    const n = parseInt(v||0,10);
-    return Math.max(lo, Math.min(hi, isNaN(n)? lo : n));
-  }
+  function clampInt(v, lo, hi){ const n = parseInt(v||0,10); return Math.max(lo, Math.min(hi, isNaN(n)? lo : n)); }
 
-  // ---------- 출력 렌더 ----------
   function applyClassificationOutputs(yTrue, yProb, thr=0.5, extra){
     const { tp, tn, fp, fn, acc, prec, rec, f1, yPred } = binMetrics(yTrue, yProb, thr);
-    // metrics
-    metricsBody.innerHTML = `
+    $('#ml-metrics').innerHTML = `
       <tr><td>Accuracy</td><td>${acc.toFixed(4)}</td></tr>
       <tr><td>Precision</td><td>${prec.toFixed(4)}</td></tr>
       <tr><td>Recall</td><td>${rec.toFixed(4)}</td></tr>
       <tr><td>F1</td><td>${f1.toFixed(4)}</td></tr>
-      <tr><td>Threshold</td><td>${thr.toFixed(2)}</td></tr>
-    `;
-    // CM
-    cmDiv.innerHTML = `
+      <tr><td>Threshold</td><td>${thr.toFixed(2)}</td></tr>`;
+    $('#ml-cm').innerHTML = `
       <div><div class="sub">TN</div><div style="font-weight:800;font-size:18px">${tn}</div></div>
       <div><div class="sub">FP</div><div style="font-weight:800;font-size:18px">${fp}</div></div>
       <div><div class="sub">FN</div><div style="font-weight:800;font-size:18px">${fn}</div></div>
-      <div><div class="sub">TP</div><div style="font-weight:800;font-size:18px">${tp}</div></div>
-    `;
-    // preview
-    renderPreviewClassification(yTrue, yProb, yPred, extra?.features || [], extra?.Xte || [], extra?.inv || {});
+      <div><div class="sub">TP</div><div style="font-weight:800;font-size:18px">${tp}</div></div>`;
+    renderPreviewClassification(yTrue, yProb, yPred, extra?.features||[], extra?.Xte||[], extra?.inv||{});
   }
 
   function renderVIP(features, weights){
     const items = features.map((f,i)=>({ f, s: Math.abs(weights[i]||0) }))
                          .sort((a,b)=> b.s - a.s)
                          .slice(0, Math.min(20, features.length));
-    vipBody.innerHTML = items.map(it => `<tr><td>${escapeHtml(it.f)}</td><td>${it.s.toFixed(6)}</td></tr>`).join('') || `<tr><td colspan="2">-</td></tr>`;
+    $('#ml-vip').innerHTML = items.map(it => `<tr><td>${escapeHtml(it.f)}</td><td>${it.s.toFixed(6)}</td></tr>`).join('') || `<tr><td colspan="2">-</td></tr>`;
   }
 
   function renderPreviewClassification(yTrue, yProb, yPred, features, Xte, inv){
-    const rows = [];
-    const topK = 3;
+    const rows = []; const topK = 3; const topNames = features.slice(0, topK).join(', ');
     for (let i=0;i<yTrue.length;i++){
-      const yt = yTrue[i], yp = yPred[i], pp = yProb[i];
-      // 특징 간단 표시(표준화 특징이므로 원값 복원 대신 상위 feature명만)
-      const topNames = features.slice(0, topK).join(', ');
       rows.push(`
         <tr>
-          <td>${escapeHtml(inv?.[yt] ?? String(yt))}</td>
-          <td>${escapeHtml(inv?.[yp] ?? String(yp))}</td>
-          <td>${pp.toFixed(4)}</td>
+          <td>${escapeHtml(inv?.[yTrue[i]] ?? String(yTrue[i]))}</td>
+          <td>${escapeHtml(inv?.[yPred[i]] ?? String(yPred[i]))}</td>
+          <td>${yProb[i].toFixed(4)}</td>
           <td>${escapeHtml(topNames)}</td>
-        </tr>
-      `);
+        </tr>`);
     }
-    previewBody.innerHTML = rows.join('') || `<tr><td colspan="4">-</td></tr>`;
+    $('#ml-preview').innerHTML = rows.join('') || `<tr><td colspan="4">-</td></tr>`;
   }
 
   function renderRegMetrics(yTrue, yPred){
-    const _mse = mse(yTrue, yPred);
-    const rmse = Math.sqrt(_mse);
-    // MAE
+    const _mse = mse(yTrue, yPred); const rmse = Math.sqrt(_mse);
     let mae=0; for (let i=0;i<yTrue.length;i++) mae += Math.abs(yPred[i]-yTrue[i]); mae/=yTrue.length||1;
-    // R^2
     const meanY = yTrue.reduce((a,b)=>a+b,0)/(yTrue.length||1);
     let ssTot=0, ssRes=0;
-    for (let i=0;i<yTrue.length;i++){
-      ssRes += (yTrue[i]-yPred[i])**2;
-      ssTot += (yTrue[i]-meanY)**2;
-    }
+    for (let i=0;i<yTrue.length;i++){ ssRes += (yTrue[i]-yPred[i])**2; ssTot += (yTrue[i]-meanY)**2; }
     const r2 = 1 - (ssRes/Math.max(ssTot, 1e-12));
-    metricsBody.innerHTML = `
+    $('#ml-metrics').innerHTML = `
       <tr><td>RMSE</td><td>${rmse.toFixed(6)}</td></tr>
       <tr><td>MAE</td><td>${mae.toFixed(6)}</td></tr>
       <tr><td>MSE</td><td>${_mse.toFixed(6)}</td></tr>
-      <tr><td>R²</td><td>${r2.toFixed(6)}</td></tr>
-    `;
-    cmDiv.innerHTML = `<div class="sub" style="grid-column:1/-1">회귀문제는 혼동행렬이 적용되지 않습니다.</div>`;
+      <tr><td>R²</td><td>${r2.toFixed(6)}</td></tr>`;
+    $('#ml-cm').innerHTML = `<div class="sub" style="grid-column:1/-1">회귀문제는 혼동행렬이 적용되지 않습니다.</div>`;
   }
 
-  function renderPreviewRegression(yTrue, yPred, features, Xte){
-    const rows = [];
-    const topNames = features.slice(0,3).join(', ');
+  function renderPreviewRegression(yTrue, yPred, features){
+    const rows = []; const topNames = features.slice(0,3).join(', ');
     for (let i=0;i<yTrue.length;i++){
-      rows.push(`
-        <tr>
-          <td>${yTrue[i].toFixed(4)}</td>
-          <td>${yPred[i].toFixed(4)}</td>
-          <td>—</td>
-          <td>${escapeHtml(topNames)}</td>
-        </tr>
-      `);
+      rows.push(`<tr><td>${yTrue[i].toFixed(4)}</td><td>${yPred[i].toFixed(4)}</td><td>—</td><td>${escapeHtml(topNames)}</td></tr>`);
     }
-    previewBody.innerHTML = rows.join('') || `<tr><td colspan="4">-</td></tr>`;
+    $('#ml-preview').innerHTML = rows.join('') || `<tr><td colspan="4">-</td></tr>`;
   }
 
-  function escapeHtml(s){
-    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  }
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
-  // 초기 상태
   log('대기');
 })();
 </script>
