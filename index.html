@@ -1,4 +1,4 @@
-<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (버그픽스: bootstrap 계수·회귀 프리뷰·스크롤) -->
+<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (오른쪽 세로 '결과로 이동' 단일 버튼) -->
 <!doctype html>
 <html lang="ko">
 <head>
@@ -55,7 +55,7 @@
   @media (max-width:1100px){ .ml .results-grid{grid-template-columns:1fr 1fr} }
   @media (max-width:760px){ .ml .results-grid{grid-template-columns:1fr} }
 
-  /* 표: 내부 스크롤 (세로/가로) */
+  /* 표: 내부 스크롤 (세로/가로) — 가시성 유지 */
   .ml .table-wrap{
     border:1px solid #e9eef5; border-radius:14px;
     overflow:auto;
@@ -80,10 +80,34 @@
 
   .ml .log{margin-top:10px;border:1px dashed #cbd5e1;border-radius:12px;background:#fbfdff;padding:10px;font-size:12px;color:#0b1220;white-space:pre-wrap}
 
-  /* 하단 중앙 고정 TOP 버튼 (단일) */
-  .ml .top-fab{
-    position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9999;display:none;
-    padding:10px 18px;border-radius:999px;box-shadow:0 10px 24px rgba(2,6,23,.16)
+  /* ✅ 오른쪽 고정 세로 버튼 (결과 생성 후 표시) */
+  .side-fab{
+    position:fixed;
+    right:18px;
+    top:50%;
+    transform:translateY(-50%);
+    z-index:9999;
+    display:none;               /* 학습 완료 전에는 숨김 */
+    padding:14px 10px;
+    width:44px;
+    height:180px;
+    writing-mode:vertical-rl;   /* 세로 글자 */
+    text-orientation:mixed;
+    border-radius:18px;
+    font-weight:900;
+    letter-spacing:0.5px;
+    background:linear-gradient(180deg,#0f2e59,#174a8c);
+    color:#fff;
+    border:none;
+    box-shadow:0 12px 28px rgba(2,6,23,.22);
+    cursor:pointer;
+    transition:transform .18s, box-shadow .18s, opacity .18s;
+    opacity:.98;
+  }
+  .side-fab:hover{ transform:translateY(-50%) scale(1.02); box-shadow:0 16px 36px rgba(2,6,23,.28); }
+  .side-fab:active{ transform:translateY(-50%) scale(0.99); }
+  @media (max-width:960px){
+    .side-fab{ right:10px; height:160px; }
   }
 </style>
 </head>
@@ -249,8 +273,8 @@
     </div>
   </div>
 
-  <!-- ✅ 화면 어디서나 보이는 하단 중앙 TOP 버튼 (유일) -->
-  <a id="ml-top" class="btn primary top-fab" href="#ml-app" aria-label="상단으로">상단으로</a>
+  <!-- ✅ 오른쪽 세로 이동 버튼 (학습 완료 후 표시) -->
+  <button id="ml-goto-results" class="side-fab" aria-label="결과로 이동">결과로 이동</button>
 </section>
 
 <script>
@@ -559,6 +583,8 @@
   const cvHead = $('#ml-cv-head');
   const cvBody = $('#ml-cv-body');
 
+  const gotoBtn = $('#ml-goto-results');
+
   chooseBtn.addEventListener('click', ()=> fInput.click());
   $('#ml-drop').addEventListener('dragover', (e)=> e.preventDefault());
   $('#ml-drop').addEventListener('drop', (e)=>{
@@ -607,6 +633,7 @@
     cmDiv.innerHTML = ''; vipBody.innerHTML = ''; coefBody.innerHTML=''; previewBody.innerHTML = '';
     thresWrap.style.display = 'none'; pWrap.style.display = 'none';
     cvHead.innerHTML=''; cvBody.innerHTML='';
+    gotoBtn.style.display='none';                 // 새 파일 로드시 숨김
   }
 
   function renderFeatureChips(){
@@ -638,6 +665,7 @@
     metricsBody.innerHTML=`<tr><td>—</td><td>CSV 업로드 후 실행</td></tr>`; cmDiv.innerHTML=''; vipBody.innerHTML=''; coefBody.innerHTML=''; previewBody.innerHTML='';
     nrowBadge.textContent='-'; ncolBadge.textContent='-'; ntestBadge.textContent='-'; thresWrap.style.display='none'; pWrap.style.display='none';
     cvHead.innerHTML=''; cvBody.innerHTML='';
+    gotoBtn.style.display='none';                 // 초기화 시 숨김
     log('대기');
   });
 
@@ -701,10 +729,8 @@
         // AUC CI
         log('AUC CI 계산…'); pText.textContent='AUC CI (bootstrap)';
         const aucCI = bootstrapAucCI(yte, prob, B_AUC, 0.05);
-        (function appendAucCIToMetrics(ci){
-          const tb = document.getElementById('ml-metrics');
-          tb.innerHTML += `<tr><td>AUC 95% CI (B=${ci.B})</td><td>[${ci.lo.toFixed(4)}, ${ci.hi.toFixed(4)}]</td></tr>`;
-        })(aucCI);
+        const tb = document.getElementById('ml-metrics');
+        tb.innerHTML += `<tr><td>AUC 95% CI (B=${aucCI.B})</td><td>[${aucCI.lo.toFixed(4)}, ${aucCI.hi.toFixed(4)}]</td></tr>`;
 
         // Coef bootstrap
         log('계수 부트스트랩…'); pText.textContent='Coef bootstrap';
@@ -719,10 +745,7 @@
 
         // 클래스 비율
         const posRate = (y.reduce((a,b)=>a+(b===1?1:0),0)/Math.max(1,y.length));
-        (function addMetricRow(name, val){
-          const tb = document.getElementById('ml-metrics');
-          tb.innerHTML += `<tr><td>${escapeHtml(name)}</td><td>${escapeHtml(val)}</td></tr>`;
-        })('Positive Rate', posRate.toFixed(4));
+        tb.innerHTML += `<tr><td>Positive Rate</td><td>${posRate.toFixed(4)}</td></tr>`;
       }else{
         log('회귀 학습 중…'); pText.textContent=`회귀 반복`;
         const model = fitLinear(Xtr, ytr, iterations, 0.05, 1e-4, (it)=> pText.textContent=`회귀 반복 ${it}/${iterations}`);
@@ -739,9 +762,15 @@
       }
 
       log('완료'); pWrap.style.display='none';
+
+      /* ✅ 결과가 생성되면 오른쪽 세로 버튼 표시 */
+      gotoBtn.style.display='inline-flex';
+      gotoBtn.onclick = () => document.querySelector('#ml-results-card')?.scrollIntoView({behavior:'smooth', block:'start'});
+      // 최초 1회 자동 포커스 이동(UX): 프리뷰 근처로
       document.querySelector('#ml-preview-anchor')?.scrollIntoView({behavior:'smooth', block:'start'});
     }catch(err){
       console.error(err); log('오류: ' + (err?.message || err)); pWrap.style.display='none';
+      gotoBtn.style.display='none';
     }
   });
 
@@ -851,14 +880,6 @@
   }
 
   log('대기');
-})();
-
-/* 하단 중앙 TOP 표시/숨김 — 유일한 버튼 */
-(function(){
-  const topFab = document.getElementById('ml-top');
-  const toggle = () => { if (topFab) topFab.style.display = (window.scrollY > 600) ? 'inline-flex' : 'none'; };
-  window.addEventListener('scroll', toggle, {passive:true});
-  window.addEventListener('load', toggle);
 })();
 </script>
 
