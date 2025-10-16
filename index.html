@@ -1,4 +1,11 @@
-<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (부트스트랩 AUC CI + 계수 유의성 추가 통합본) -->
+<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (스크롤/상단버튼 개선 · 부트스트랩 AUC CI + 계수 유의성 포함) -->
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SNOWSOFT | 간편 머신러닝 분석</title>
+
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700;900&display=swap');
 
@@ -36,30 +43,33 @@
   .ml .uploader strong{font-weight:800}
   .ml .uploader small{color:#64748b}
 
-  .ml .panel{border:1px solid var(--br);border-radius:14px;padding:14px;min-width:0}
-
-  /* 결과 레이아웃 */
+  /* 패널/그리드 */
+  .ml .panel{border:1px solid var(--br);border-radius:14px;padding:14px;min-width:0;min-height:0;display:flex;flex-direction:column}
   .ml .results{margin-top:18px}
   .ml .results-grid{
     display:grid;
     grid-template-columns:1.2fr 1fr 1fr;
     gap:16px;
-    align-items:start;
+    align-items:stretch; /* 내부 스크롤 가능 */
   }
   @media (max-width:1100px){ .ml .results-grid{grid-template-columns:1fr 1fr} }
   @media (max-width:760px){ .ml .results-grid{grid-template-columns:1fr} }
 
-  /* 표: 내부 스크롤 */
+  /* 표: 내부 스크롤 (세로/가로) */
   .ml .table-wrap{
     border:1px solid #e9eef5; border-radius:14px;
-    overflow-y:auto; overflow-x:auto;
-    max-height:420px;
-    display:block;
+    overflow:auto;
+    max-height:360px;
     -webkit-overflow-scrolling:touch;
   }
   .ml table{width:100%; border-collapse:separate; border-spacing:0; font-size:14px; min-width:560px}
   .ml thead th{background:#f8fafc;color:#2b3345;font-weight:800;text-align:left;padding:10px;border-bottom:1px solid #e9eef5}
   .ml tbody td{padding:10px;border-top:1px solid #eef2f7; word-break:break-word}
+
+  /* 스크롤바 가시성 향상 */
+  .ml .table-wrap::-webkit-scrollbar{height:8px;width:8px}
+  .ml .table-wrap::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px}
+  .ml .table-wrap::-webkit-scrollbar-track{background:#f1f5f9}
 
   /* Confusion Matrix */
   .ml .cm{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
@@ -67,7 +77,16 @@
   .ml .cm .sub{font-size:11px;color:#64748b}
 
   .ml .log{margin-top:10px;border:1px dashed #cbd5e1;border-radius:12px;background:#fbfdff;padding:10px;font-size:12px;color:#0b1220;white-space:pre-wrap}
+
+  /* 표 하단 점프버튼 가운데 정렬 */
+  .ml .jump{display:flex;justify-content:center;gap:8px;width:100%}
+
+  /* 하단 중앙 고정 TOP 버튼 */
+  .ml .top-fab{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9999;display:none;
+    padding:10px 18px;border-radius:999px;box-shadow:0 10px 24px rgba(2,6,23,.16)}
 </style>
+</head>
+<body>
 
 <section class="ml" id="ml-app">
   <!-- 입력 카드 -->
@@ -227,12 +246,16 @@
             <tbody id="ml-preview"></tbody>
           </table>
         </div>
-        <div class="jump" style="justify-content:flex-end; margin-top:10px">
+        <!-- 가운데 정렬 -->
+        <div class="jump" style="margin-top:10px">
           <a class="btn ghost" href="#ml-app">상단으로</a>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- 화면 어디서나 보이는 하단 중앙 TOP 버튼 -->
+  <a id="ml-top" class="btn primary top-fab" href="#ml-app" aria-label="상단으로">TOP</a>
 </section>
 
 <script>
@@ -249,12 +272,7 @@
   function mean(arr){ return arr.reduce((a,b)=>a+b,0)/Math.max(1,arr.length); }
   function sd(arr){ const m=mean(arr); let v=0; for(const x of arr) v+=(x-m)**2; return Math.sqrt(v/Math.max(1,arr.length-1)); }
   function quantile(arr, q){ const a=arr.slice().sort((x,y)=>x-y); const pos=(a.length-1)*q; const lo=Math.floor(pos), hi=Math.ceil(pos); if(lo===hi) return a[lo]; return a[lo]*(hi-pos)+a[hi]*(pos-lo); }
-  function erf(x){ // Abramowitz-Stegun
-    const s=Math.sign(x), t=1/(1+0.3275911*Math.abs(x));
-    const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429;
-    const y=1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
-    return s*y;
-  }
+  function erf(x){ const s=Math.sign(x), t=1/(1+0.3275911*Math.abs(x)); const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429; const y=1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x); return s*y; }
   function pnorm(z){ return 0.5*(1+erf(z/Math.SQRT2)); }
   function twoSidedP(z){ const az=Math.abs(z); return 2*(1-pnorm(az)); }
   function stars(p){ return p<0.001?'***': p<0.01?'**': p<0.05?'*': p<0.1?'.':''; }
@@ -287,7 +305,7 @@
   };
   const toNumberOrNa = (v)=> (v===''||v==null)? NaN : (isNaN(+v)? NaN : +v);
   const median = (a)=>{ const b=a.filter(x=>!isNaN(x)).sort((x,y)=>x-y); if(!b.length) return NaN; const m=Math.floor(b.length/2); return b.length%2? b[m] : (b[m-1]+b[m])/2; };
-  const mode = (arr)=>{ const m=new Map(); for(const v of arr){ const k=(v===''||v==null)?'__NA__':String(v); m.set(k,(m.get(k)||0)+1); } let best='__NA__',c=-1; m.forEach((n,k)=>{if(n>c){c=n;best=k;}}); return best==='__NA__'? '' : best; };
+  const mode = (arr)=>{ const m=new Map(); for(const v of arr){ const k=(v===''||v==null)?'__NA__':String(v); m.set(k,(m.get(k)||0)+1); let best='__NA__',c=-1; m.forEach((n,k)=>{if(n>c){c=n;best=k;}}); } return (function(){let best='__NA__',c=-1; m.forEach((n,k)=>{if(n>c){c=n;best=k;}}); return best==='__NA__'? '' : best; })(); };
 
   /* ---------- split/scale ---------- */
   function trainTestSplit(X, y, testRatio=0.2, seed=42){
@@ -324,7 +342,7 @@
     return { w,b,predict, iterations };
   }
 
-  function fitLogistic(X,y,iterations=400,lr=0.05,l2=1e-4,cb){
+  function fitLogistic(X,y,iterations=400,lr=0.08,l2=1e-4,cb){
     const n=X.length,p=X[0].length; const w=Array(p).fill(0); let b=0;
     for(let it=1;it<=iterations;it++){
       let db=0; const dw=Array(p).fill(0);
@@ -337,9 +355,8 @@
     return { w,b,predictProba,predict, iterations };
   }
 
-  /* ---------- OLS ridge(회귀 부트스트랩용 빠른 폐형식) ---------- */
+  /* ---------- OLS ridge(회귀 부트스트랩용 폐형식) ---------- */
   function ridgeClosedForm(X, y, l2=1e-4){
-    // X: n x p, y: n
     const p = X[0].length;
     const XtX = Array.from({length:p},()=>Array(p).fill(0));
     const Xty = Array(p).fill(0);
@@ -353,11 +370,8 @@
     }
     for(let j=0;j<p;j++) XtX[j][j]+=l2;
 
-    // solve (XtX) w = Xty   via Gaussian elimination
     const A = XtX.map(row=>row.slice()); const b = Xty.slice();
-    // forward elimination
     for(let i=0;i<p;i++){
-      // pivot
       let max=i; for(let r=i+1;r<p;r++) if(Math.abs(A[r][i])>Math.abs(A[max][i])) max=r;
       if(max!==i){ const tmp=A[i]; A[i]=A[max]; A[max]=tmp; const tb=b[i]; b[i]=b[max]; b[max]=tb; }
       const piv=A[i][i]||1e-12;
@@ -368,7 +382,6 @@
         b[r]-=f*b[i];
       }
     }
-    // back substitution
     const w=Array(p).fill(0);
     for(let i=p-1;i>=0;i--){
       let s=b[i];
@@ -407,7 +420,7 @@
       const tpr = tp / Math.max(1, tp + fn);
       const fpr = fp / Math.max(1, fp + tn);
       const J = tpr - fpr;
-      if (J > bestJ) { bestJ = J; bestThr = thr; }
+      if (J > bestJ) { bestThr = thr; bestJ = J; }
       pts.push({fpr, tpr});
     }
     const sorted = pts.slice().sort((a,b)=> a.fpr - b.fpr);
@@ -655,7 +668,7 @@
         const aucCI = bootstrapAucCI(yte, prob, B_AUC, 0.05);
         appendAucCIToMetrics(aucCI);
 
-        // ===== Coef 부트스트랩 SE (로지스틱 GD) =====
+        // ===== Coef 부트스트랩 SE (로지스틱) =====
         log('계수 부트스트랩…'); pText.textContent='Coef bootstrap';
         const coefBoot = bootstrapCoefLogit(Xtr, ytr, features.length, B_COEF);
         renderCoef(features, model.w, coefBoot.se, coefBoot.z, coefBoot.p);
@@ -679,7 +692,7 @@
         renderRegMetrics(yte, pred);
         renderPreviewRegression(yte, pred, features);
 
-        // ===== Coef 부트스트랩 SE (ridge OLS 폐형식) =====
+        // ===== Coef 부트스트랩 SE (ridge OLS) =====
         log('계수 부트스트랩…'); pText.textContent='Coef bootstrap';
         const coefBoot = bootstrapCoefOLS(Xtr, ytr, features.length, B_COEF);
         renderCoef(features, model.w, coefBoot.se, coefBoot.z, coefBoot.p);
@@ -806,14 +819,13 @@
     for(let b=0;b<B;b++){
       const n=X.length; const idx=[]; for(let i=0;i<n;i++) idx.push(Math.floor(Math.random()*n));
       const Xb=idx.map(i=>X[i]); const yb=idx.map(i=>y[i]);
-      const m = fitLogistic(Xb, yb, 150, 0.08, 1e-4); // 약간 줄인 반복으로 속도 균형
+      const m = fitLogistic(Xb, yb, 150, 0.08, 1e-4);
       for(let j=0;j<p;j++) ws[b][j]=m.w[j]||0;
     }
     const se = Array(p).fill(0), z=Array(p).fill(0), pval=Array(p).fill(1);
     for(let j=0;j<p;j++){
       const arr = ws.map(w=>w[j]);
       se[j]=sd(arr);
-      // z, p는 최종 추정치 대비 계산은 호출부에서 처리(여기선 se만 반환해도 됨)
     }
     return {se, z, p:pval};
   }
@@ -826,15 +838,28 @@
       const wb = ridgeClosedForm(Xb, yb, 1e-4);
       for(let j=0;j<p;j++) ws[b][j]=wb[j]||0;
     }
-    const se = Array(p).fill(0);
+    const se = Array(p).fill(0), z=Array(p).fill(0), pval=Array(p).fill(1);
     for(let j=0;j<p;j++){
       const arr = ws.map(w=>w[j]);
       se[j]=sd(arr);
     }
-    // z, p는 호출부에서 최종 w 대비 계산
-    return {se};
+    return {se, z, p:pval};
   }
 
   log('대기');
 })();
+
+/* 하단 중앙 TOP 표시/숨김 */
+(function(){
+  const topFab = document.getElementById('ml-top');
+  const toggle = () => {
+    if (!topFab) return;
+    topFab.style.display = (window.scrollY > 600) ? 'inline-flex' : 'none';
+  };
+  window.addEventListener('scroll', toggle, {passive:true});
+  window.addEventListener('load', toggle);
+})();
 </script>
+
+</body>
+</html>
