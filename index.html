@@ -1,4 +1,4 @@
-<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (스크롤/상단버튼 개선 · 부트스트랩 AUC CI + 계수 유의성 포함) -->
+<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (스크롤바 가시성↑ · TOP 버튼 단일화) -->
 <!doctype html>
 <html lang="ko">
 <head>
@@ -50,26 +50,29 @@
     display:grid;
     grid-template-columns:1.2fr 1fr 1fr;
     gap:16px;
-    align-items:stretch; /* 내부 스크롤 가능 */
+    align-items:stretch;
   }
   @media (max-width:1100px){ .ml .results-grid{grid-template-columns:1fr 1fr} }
   @media (max-width:760px){ .ml .results-grid{grid-template-columns:1fr} }
 
-  /* 표: 내부 스크롤 (세로/가로) */
+  /* 표: 내부 스크롤 (세로/가로) — 가시성 강화 */
   .ml .table-wrap{
     border:1px solid #e9eef5; border-radius:14px;
     overflow:auto;
     max-height:360px;
     -webkit-overflow-scrolling:touch;
+    /* Firefox */
+    scrollbar-width:auto;
+    scrollbar-color:#94a3b8 #e2e8f0; /* thumb track */
   }
   .ml table{width:100%; border-collapse:separate; border-spacing:0; font-size:14px; min-width:560px}
   .ml thead th{background:#f8fafc;color:#2b3345;font-weight:800;text-align:left;padding:10px;border-bottom:1px solid #e9eef5}
   .ml tbody td{padding:10px;border-top:1px solid #eef2f7; word-break:break-word}
 
-  /* 스크롤바 가시성 향상 */
-  .ml .table-wrap::-webkit-scrollbar{height:8px;width:8px}
-  .ml .table-wrap::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px}
-  .ml .table-wrap::-webkit-scrollbar-track{background:#f1f5f9}
+  /* WebKit/Chromium 스크롤바 */
+  .ml .table-wrap::-webkit-scrollbar{height:12px;width:12px}
+  .ml .table-wrap::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:999px;border:3px solid #e2e8f0}
+  .ml .table-wrap::-webkit-scrollbar-track{background:#e2e8f0;border-radius:999px}
 
   /* Confusion Matrix */
   .ml .cm{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
@@ -78,12 +81,11 @@
 
   .ml .log{margin-top:10px;border:1px dashed #cbd5e1;border-radius:12px;background:#fbfdff;padding:10px;font-size:12px;color:#0b1220;white-space:pre-wrap}
 
-  /* 표 하단 점프버튼 가운데 정렬 */
-  .ml .jump{display:flex;justify-content:center;gap:8px;width:100%}
-
-  /* 하단 중앙 고정 TOP 버튼 */
-  .ml .top-fab{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9999;display:none;
-    padding:10px 18px;border-radius:999px;box-shadow:0 10px 24px rgba(2,6,23,.16)}
+  /* 하단 중앙 고정 TOP 버튼 (단일) */
+  .ml .top-fab{
+    position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9999;display:none;
+    padding:10px 18px;border-radius:999px;box-shadow:0 10px 24px rgba(2,6,23,.16)
+  }
 </style>
 </head>
 <body>
@@ -147,9 +149,7 @@
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
           <button id="ml-train" class="btn primary" disabled>학습 시작</button>
           <button id="ml-clear" class="btn" disabled>초기화</button>
-          <div class="jump" style="margin-left:auto">
-            <a class="btn ghost" href="#ml-preview-anchor">예측 표로 이동</a>
-          </div>
+          <div style="margin-left:auto"></div>
         </div>
         <div id="ml-progress" class="sub" style="margin-top:8px;display:none">학습 중… <span id="ml-ptext"></span></div>
 
@@ -196,7 +196,7 @@
         <div id="ml-cm" class="cm"></div>
       </div>
 
-      <!-- 설명변수 중요도 (절댓값 순위) -->
+      <!-- 설명변수 중요도 -->
       <div class="panel">
         <div class="h2" style="font-size:16px;margin-bottom:6px">설명변수 중요도</div>
         <div class="table-wrap">
@@ -207,7 +207,7 @@
         </div>
       </div>
 
-      <!-- 계수/가중치 유의성(부트스트랩) -->
+      <!-- 계수/가중치 유의성 -->
       <div class="panel" style="grid-column: 1 / -1">
         <div class="h2" style="font-size:16px;margin-bottom:6px">계수/가중치 (표준화, 부트스트랩 유의성)</div>
         <div class="table-wrap">
@@ -246,21 +246,18 @@
             <tbody id="ml-preview"></tbody>
           </table>
         </div>
-        <!-- 가운데 정렬 -->
-        <div class="jump" style="margin-top:10px">
-          <a class="btn ghost" href="#ml-app">상단으로</a>
-        </div>
+        <!-- ❌ 내부 상단 버튼 삭제 (중복 방지) -->
       </div>
     </div>
   </div>
 
-  <!-- 화면 어디서나 보이는 하단 중앙 TOP 버튼 -->
-  <a id="ml-top" class="btn primary top-fab" href="#ml-app" aria-label="상단으로">TOP</a>
+  <!-- ✅ 화면 어디서나 보이는 하단 중앙 TOP 버튼 (유일) -->
+  <a id="ml-top" class="btn primary top-fab" href="#ml-app" aria-label="상단으로">상단으로</a>
 </section>
 
 <script>
 (() => {
-  /* ====== 설정(부트스트랩 반복 수) ====== */
+  /* ====== 설정 ====== */
   const B_AUC  = 200;  // AUC CI bootstrap
   const B_COEF = 200;  // Coef SE bootstrap
 
@@ -272,7 +269,11 @@
   function mean(arr){ return arr.reduce((a,b)=>a+b,0)/Math.max(1,arr.length); }
   function sd(arr){ const m=mean(arr); let v=0; for(const x of arr) v+=(x-m)**2; return Math.sqrt(v/Math.max(1,arr.length-1)); }
   function quantile(arr, q){ const a=arr.slice().sort((x,y)=>x-y); const pos=(a.length-1)*q; const lo=Math.floor(pos), hi=Math.ceil(pos); if(lo===hi) return a[lo]; return a[lo]*(hi-pos)+a[hi]*(pos-lo); }
-  function erf(x){ const s=Math.sign(x), t=1/(1+0.3275911*Math.abs(x)); const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429; const y=1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x); return s*y; }
+  function erf(x){ const s=Math.sign(x), t=1/(1+0.3275911*Math.abs(x));
+    const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429;
+    const y=1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
+    return s*y;
+  }
   function pnorm(z){ return 0.5*(1+erf(z/Math.SQRT2)); }
   function twoSidedP(z){ const az=Math.abs(z); return 2*(1-pnorm(az)); }
   function stars(p){ return p<0.001?'***': p<0.01?'**': p<0.05?'*': p<0.1?'.':''; }
@@ -305,7 +306,7 @@
   };
   const toNumberOrNa = (v)=> (v===''||v==null)? NaN : (isNaN(+v)? NaN : +v);
   const median = (a)=>{ const b=a.filter(x=>!isNaN(x)).sort((x,y)=>x-y); if(!b.length) return NaN; const m=Math.floor(b.length/2); return b.length%2? b[m] : (b[m-1]+b[m])/2; };
-  const mode = (arr)=>{ const m=new Map(); for(const v of arr){ const k=(v===''||v==null)?'__NA__':String(v); m.set(k,(m.get(k)||0)+1); let best='__NA__',c=-1; m.forEach((n,k)=>{if(n>c){c=n;best=k;}}); } return (function(){let best='__NA__',c=-1; m.forEach((n,k)=>{if(n>c){c=n;best=k;}}); return best==='__NA__'? '' : best; })(); };
+  const mode = (arr)=>{ const m=new Map(); for(const v of arr){ const k=(v===''||v==null)?'__NA__':String(v); m.set(k,(m.get(k)||0)+1); } let best='__NA__',c=-1; m.forEach((n,k)=>{if(n>c){c=n;best=k;}}); return best==='__NA__'? '' : best; };
 
   /* ---------- split/scale ---------- */
   function trainTestSplit(X, y, testRatio=0.2, seed=42){
@@ -326,7 +327,7 @@
     return { mu:mu, sd:sdv, transform };
   }
 
-  /* ---------- models (GD 기반) ---------- */
+  /* ---------- models ---------- */
   const dot=(a,b)=>{let s=0; for(let i=0;i<a.length;i++) s+=(a[i]||0)*(b[i]||0); return s; };
   const sigmoid=(z)=> 1/(1+Math.exp(-z));
 
@@ -355,7 +356,7 @@
     return { w,b,predictProba,predict, iterations };
   }
 
-  /* ---------- OLS ridge(회귀 부트스트랩용 폐형식) ---------- */
+  /* ---------- OLS ridge ---------- */
   function ridgeClosedForm(X, y, l2=1e-4){
     const p = X[0].length;
     const XtX = Array.from({length:p},()=>Array(p).fill(0));
@@ -510,7 +511,6 @@
   const thresWrap = $('#ml-thres-wrap');
   const thresInput = $('#ml-thres');
   const thresLabel = $('#ml-thres-label');
-  const thresSuggest = $('#ml-thres-suggest');
 
   const metricsBody = $('#ml-metrics');
   const cmDiv = $('#ml-cm');
@@ -591,7 +591,7 @@
   splitRange.addEventListener('input', updateSplitLabel);
 
   $('#ml-thres').addEventListener('input', ()=>{
-    const thr = Number(thresInput.value)/100; thresLabel.textContent = thr.toFixed(2);
+    const thr = Number(thresInput.value)/100; document.getElementById('ml-thres-label').textContent = thr.toFixed(2);
     if (META.isClassification && META._lastProb) applyClassificationOutputs(META._lastYtrue, META._lastProb, thr);
   });
 
@@ -649,10 +649,10 @@
 
       // Hold-out split
       const { Xtr,ytr,Xte,yte } = trainTestSplit(Xs, y, 1-META.splitRatio);
-      ntestBadge.textContent = yte.length;
+      document.getElementById('ml-ntest').textContent = yte.length;
 
       META.isClassification = isClassification;
-      const iterations = Math.max(20, Math.min(2000, parseInt($('#ml-epochs').value||0,10)||30));
+      const iterations = Math.max(20, Math.min(2000, parseInt(document.getElementById('ml-epochs').value||0,10)||30));
 
       if (isClassification){
         log('분류 학습 중…'); pText.textContent=`분류 반복`;
@@ -663,22 +663,21 @@
         applyClassificationOutputs(yte, prob, 0.5, {features, inv:META.invMapTarget});
         renderVIP(features, model.w);
 
-        // ===== AUC 95% CI (부트스트랩) =====
+        // AUC CI
         log('AUC CI 계산…'); pText.textContent='AUC CI (bootstrap)';
         const aucCI = bootstrapAucCI(yte, prob, B_AUC, 0.05);
         appendAucCIToMetrics(aucCI);
 
-        // ===== Coef 부트스트랩 SE (로지스틱) =====
+        // Coef bootstrap
         log('계수 부트스트랩…'); pText.textContent='Coef bootstrap';
         const coefBoot = bootstrapCoefLogit(Xtr, ytr, features.length, B_COEF);
         renderCoef(features, model.w, coefBoot.se, coefBoot.z, coefBoot.p);
 
-        // 추천 임곗값 반영
+        // 추천 임곗값
         const rc = computeROC(yte, prob);
         const v = Math.round(Math.max(1, Math.min(99, rc.bestThr*100)));
-        thresInput.value = String(v);
-        thresLabel.textContent = (v/100).toFixed(2);
-        const sug = document.getElementById('ml-thres-suggest'); if (sug) sug.textContent = (v/100).toFixed(2);
+        document.getElementById('ml-thres').value = String(v);
+        document.getElementById('ml-thres-label').textContent = (v/100).toFixed(2);
 
         // 클래스 비율
         const posRate = (y.reduce((a,b)=>a+(b===1?1:0),0)/Math.max(1,y.length));
@@ -692,7 +691,7 @@
         renderRegMetrics(yte, pred);
         renderPreviewRegression(yte, pred, features);
 
-        // ===== Coef 부트스트랩 SE (ridge OLS) =====
+        // Coef bootstrap
         log('계수 부트스트랩…'); pText.textContent='Coef bootstrap';
         const coefBoot = bootstrapCoefOLS(Xtr, ytr, features.length, B_COEF);
         renderCoef(features, model.w, coefBoot.se, coefBoot.z, coefBoot.p);
@@ -739,7 +738,8 @@
   function renderVIP(features, weights){
     const items = features.map((f,i)=>({ f, s: Math.abs(weights[i]||0) }))
                          .sort((a,b)=> b.s-a.s).slice(0, Math.min(20, features.length));
-    $('#ml-vip').innerHTML = items.map(it=> `<tr><td>${escapeHtml(it.f)}</td><td>${it.s.toFixed(6)}</td></tr>`).join('') || `<tr><td colspan="2">-</td></tr>`;
+    document.getElementById('ml-vip').innerHTML =
+      items.map(it=> `<tr><td>${escapeHtml(it.f)}</td><td>${it.s.toFixed(6)}</td></tr>`).join('') || `<tr><td colspan="2">-</td></tr>`;
   }
 
   function renderCoef(features, weights, seArr, zArr, pArr){
@@ -758,7 +758,7 @@
         <td>${sig}</td>
       </tr>`;
     });
-    $('#ml-coef').innerHTML = rows.join('') || `<tr><td colspan="6">-</td></tr>`;
+    document.getElementById('ml-coef').innerHTML = rows.join('') || `<tr><td colspan="6">-</td></tr>`;
   }
 
   function renderPreviewClassification(yTrue, yPred, yProb, features, inv){
@@ -772,7 +772,7 @@
         <td>${escapeHtml(topNames)}</td>
       </tr>`);
     }
-    $('#ml-preview').innerHTML = rows.join('') || `<tr><td colspan="4">-</td></tr>`;
+    document.getElementById('ml-preview').innerHTML = rows.join('') || `<tr><td colspan="4">-</td></tr>`;
   }
 
   function renderRegMetrics(yTrue, yPred){
@@ -781,21 +781,12 @@
     const meanY = yTrue.reduce((a,b)=>a+b,0)/Math.max(1,yTrue.length);
     let ssTot=0,ssRes=0; for(let i=0;i<yTrue.length;i++){ ssRes+=(yTrue[i]-yPred[i])**2; ssTot+=(yTrue[i]-meanY)**2; }
     const r2 = 1 - (ssRes/Math.max(ssTot,1e-12));
-    $('#ml-metrics').innerHTML = `
+    document.getElementById('ml-metrics').innerHTML = `
       <tr><td>RMSE</td><td>${rmse.toFixed(6)}</td></tr>
       <tr><td>MAE</td><td>${mae.toFixed(6)}</td></tr>
       <tr><td>MSE</td><td>${_mse.toFixed(6)}</td></tr>
       <tr><td>R²</td><td>${r2.toFixed(6)}</td></tr>`;
-    $('#ml-cm').innerHTML = `<div class="sub" style="grid-column:1/-1">회귀문제는 혼동행렬이 적용되지 않습니다.</div>`;
-  }
-
-  function renderPreviewRegression(yTrue, yPred, features){
-    const topNames = features.slice(0,3).join(', ');
-    const rows = [];
-    for (let i=0;i<yTrue.length;i++){
-      rows.push(`<tr><td>${yTrue[i].toFixed(4)}</td><td>${yPred[i].toFixed(4)}</td><td>—</td><td>${escapeHtml(topNames)}</td></tr>`);
-    }
-    $('#ml-preview').innerHTML = rows.join('') || `<tr><td colspan="4">-</td></tr>`;
+    document.getElementById('ml-cm').innerHTML = `<div class="sub" style="grid-column:1/-1">회귀문제는 혼동행렬이 적용되지 않습니다.</div>`;
   }
 
   function renderCV(cv, isCls){
@@ -813,49 +804,13 @@
     }
   }
 
-  /* ---------- Bootstrap for coefficients ---------- */
-  function bootstrapCoefLogit(X, y, p, B=200){
-    const ws = Array.from({length:B}, ()=>Array(p).fill(0));
-    for(let b=0;b<B;b++){
-      const n=X.length; const idx=[]; for(let i=0;i<n;i++) idx.push(Math.floor(Math.random()*n));
-      const Xb=idx.map(i=>X[i]); const yb=idx.map(i=>y[i]);
-      const m = fitLogistic(Xb, yb, 150, 0.08, 1e-4);
-      for(let j=0;j<p;j++) ws[b][j]=m.w[j]||0;
-    }
-    const se = Array(p).fill(0), z=Array(p).fill(0), pval=Array(p).fill(1);
-    for(let j=0;j<p;j++){
-      const arr = ws.map(w=>w[j]);
-      se[j]=sd(arr);
-    }
-    return {se, z, p:pval};
-  }
-
-  function bootstrapCoefOLS(X, y, p, B=200){
-    const ws = Array.from({length:B}, ()=>Array(p).fill(0));
-    for(let b=0;b<B;b++){
-      const n=X.length; const idx=[]; for(let i=0;i<n;i++) idx.push(Math.floor(Math.random()*n));
-      const Xb=idx.map(i=>X[i]); const yb=idx.map(i=>y[i]);
-      const wb = ridgeClosedForm(Xb, yb, 1e-4);
-      for(let j=0;j<p;j++) ws[b][j]=wb[j]||0;
-    }
-    const se = Array(p).fill(0), z=Array(p).fill(0), pval=Array(p).fill(1);
-    for(let j=0;j<p;j++){
-      const arr = ws.map(w=>w[j]);
-      se[j]=sd(arr);
-    }
-    return {se, z, p:pval};
-  }
-
   log('대기');
 })();
 
-/* 하단 중앙 TOP 표시/숨김 */
+/* 하단 중앙 TOP 표시/숨김 — 유일한 버튼 */
 (function(){
   const topFab = document.getElementById('ml-top');
-  const toggle = () => {
-    if (!topFab) return;
-    topFab.style.display = (window.scrollY > 600) ? 'inline-flex' : 'none';
-  };
+  const toggle = () => { if (topFab) topFab.style.display = (window.scrollY > 600) ? 'inline-flex' : 'none'; };
   window.addEventListener('scroll', toggle, {passive:true});
   window.addEventListener('load', toggle);
 })();
