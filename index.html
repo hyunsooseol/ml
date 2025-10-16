@@ -1,4 +1,4 @@
-<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (오른쪽 세로 '결과로 이동' 단일 버튼) -->
+<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (버튼 없음 · 수동 스크롤 전용) -->
 <!doctype html>
 <html lang="ko">
 <head>
@@ -9,7 +9,8 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700;900&display=swap');
 
-  html, body { margin:0; overflow-x:hidden; }
+  /* 항상 세로 스크롤바 노출 */
+  html, body { margin:0; overflow-x:hidden; overflow-y:scroll; }
   .ml, .ml *{font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; box-sizing:border-box}
   .ml{
     --navy:#0f2e59; --cobalt:#174a8c; --text:#0F172A; --dim:#475569; --card:#fff; --br:#e6ecf4; --r-xl:20px;
@@ -55,7 +56,7 @@
   @media (max-width:1100px){ .ml .results-grid{grid-template-columns:1fr 1fr} }
   @media (max-width:760px){ .ml .results-grid{grid-template-columns:1fr} }
 
-  /* 표: 내부 스크롤 (세로/가로) — 가시성 유지 */
+  /* 표: 내부 스크롤(세로/가로) */
   .ml .table-wrap{
     border:1px solid #e9eef5; border-radius:14px;
     overflow:auto;
@@ -68,47 +69,16 @@
   .ml thead th{background:#f8fafc;color:#2b3345;font-weight:800;text-align:left;padding:10px;border-bottom:1px solid #e9eef5}
   .ml tbody td{padding:10px;border-top:1px solid #eef2f7; word-break:break-word}
 
-  /* WebKit/Chromium 스크롤바 */
+  /* WebKit 스크롤바 */
   .ml .table-wrap::-webkit-scrollbar{height:12px;width:12px}
   .ml .table-wrap::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:999px;border:3px solid #e2e8f0}
   .ml .table-wrap::-webkit-scrollbar-track{background:#e2e8f0;border-radius:999px}
 
-  /* Confusion Matrix */
   .ml .cm{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
   .ml .cm > div{border:1px solid #e5e7eb;border-radius:12px;padding:12px;text-align:center}
   .ml .cm .sub{font-size:11px;color:#64748b}
 
   .ml .log{margin-top:10px;border:1px dashed #cbd5e1;border-radius:12px;background:#fbfdff;padding:10px;font-size:12px;color:#0b1220;white-space:pre-wrap}
-
-  /* ✅ 오른쪽 고정 세로 버튼 (결과 생성 후 표시) */
-  .side-fab{
-    position:fixed;
-    right:18px;
-    top:50%;
-    transform:translateY(-50%);
-    z-index:9999;
-    display:none;               /* 학습 완료 전에는 숨김 */
-    padding:14px 10px;
-    width:44px;
-    height:180px;
-    writing-mode:vertical-rl;   /* 세로 글자 */
-    text-orientation:mixed;
-    border-radius:18px;
-    font-weight:900;
-    letter-spacing:0.5px;
-    background:linear-gradient(180deg,#0f2e59,#174a8c);
-    color:#fff;
-    border:none;
-    box-shadow:0 12px 28px rgba(2,6,23,.22);
-    cursor:pointer;
-    transition:transform .18s, box-shadow .18s, opacity .18s;
-    opacity:.98;
-  }
-  .side-fab:hover{ transform:translateY(-50%) scale(1.02); box-shadow:0 16px 36px rgba(2,6,23,.28); }
-  .side-fab:active{ transform:translateY(-50%) scale(0.99); }
-  @media (max-width:960px){
-    .side-fab{ right:10px; height:160px; }
-  }
 </style>
 </head>
 <body>
@@ -272,9 +242,6 @@
       </div>
     </div>
   </div>
-
-  <!-- ✅ 오른쪽 세로 이동 버튼 (학습 완료 후 표시) -->
-  <button id="ml-goto-results" class="side-fab" aria-label="결과로 이동">결과로 이동</button>
 </section>
 
 <script>
@@ -498,7 +465,7 @@
         const pred = XteS.map(r=>dot(w,r));
         const _mse = mse(yte, pred), rmse=Math.sqrt(_mse);
         const meanY = yte.reduce((a,b)=>a+b,0)/Math.max(1,yte.length);
-        let ssTot=0,ssRes=0; for(let i=0;i<yte.length;i++){ ssRes+=(yte[i]-pred[i])**2; ssTot+=(yte[i]-meanY)**2; }
+        let ssTot=0,ssRes=0; for(let i=0;i<yte.length;i++){ ssRes+=(y테[i]-pred[i])**2; ssTot+=(y테[i]-meanY)**2; }
         const r2 = 1 - (ssRes/Math.max(ssTot,1e-12));
         metrics.push({rmse, r2});
       }
@@ -523,12 +490,12 @@
       const m = fitLogistic(Xb, yb, 200, 0.08, 1e-4);
       for(let j=0;j<p;j++) W[b][j] = m.w[j] || 0;
     }
-    const se = Array(p).fill(0), z = Array(p).fill(NaN), pval = Array(p).fill(NaN);
+    const se = Array(p).fill(0);
     for(let j=0;j<p;j++){
       const col = W.map(r=>r[j]);
       se[j] = sd(col) || NaN;
     }
-    return { se, z, p:pval };
+    return { se, z:Array(p).fill(NaN), p:Array(p).fill(NaN) };
   }
 
   function bootstrapCoefOLS(X, y, p, B=200){
@@ -560,8 +527,6 @@
   const predsWrap = $('#ml-preds');
   const splitRange = $('#ml-split');
   const splitLabel = $('#ml-split-label');
-  const trainBtn = $('#ml-train');
-  const clearBtn = $('#ml-clear');
 
   const nrowBadge = $('#ml-nrow');
   const ncolBadge = $('#ml-ncol');
@@ -569,7 +534,6 @@
 
   const thresWrap = $('#ml-thres-wrap');
   const thresInput = $('#ml-thres');
-  const thresLabel = $('#ml-thres-label');
 
   const metricsBody = $('#ml-metrics');
   const cmDiv = $('#ml-cm');
@@ -583,9 +547,7 @@
   const cvHead = $('#ml-cv-head');
   const cvBody = $('#ml-cv-body');
 
-  const gotoBtn = $('#ml-goto-results');
-
-  chooseBtn.addEventListener('click', ()=> fInput.click());
+  $('#ml-choose').addEventListener('click', ()=> fInput.click());
   $('#ml-drop').addEventListener('dragover', (e)=> e.preventDefault());
   $('#ml-drop').addEventListener('drop', (e)=>{
     e.preventDefault();
@@ -627,13 +589,13 @@
     ncolBadge.textContent = headers.length;
     updateSplitLabel();
 
-    trainBtn.disabled = false; clearBtn.disabled = false;
+    document.getElementById('ml-train').disabled = false;
+    document.getElementById('ml-clear').disabled = false;
 
     metricsBody.innerHTML = `<tr><td>—</td><td>CSV 업로드 후 실행</td></tr>`;
     cmDiv.innerHTML = ''; vipBody.innerHTML = ''; coefBody.innerHTML=''; previewBody.innerHTML = '';
     thresWrap.style.display = 'none'; pWrap.style.display = 'none';
     cvHead.innerHTML=''; cvBody.innerHTML='';
-    gotoBtn.style.display='none';                 // 새 파일 로드시 숨김
   }
 
   function renderFeatureChips(){
@@ -652,12 +614,13 @@
   function updateSplitLabel(){ const v=Number(splitRange.value); splitLabel.textContent=`${v}%`; META.splitRatio=v/100; }
   splitRange.addEventListener('input', updateSplitLabel);
 
-  $('#ml-thres').addEventListener('input', ()=>{
-    const thr = Number(thresInput.value)/100; document.getElementById('ml-thres-label').textContent = thr.toFixed(2);
+  thresInput.addEventListener('input', ()=>{
+    const thr = Number(thresInput.value)/100;
+    document.getElementById('ml-thres-label').textContent = thr.toFixed(2);
     if (META.isClassification && META._lastProb) applyClassificationOutputs(META._lastYtrue, META._lastProb, thr);
   });
 
-  $('#ml-clear').addEventListener('click', ()=>{
+  document.getElementById('ml-clear').addEventListener('click', ()=>{
     RAW=null; META={ headers:[], numericCols:[], catCols:[], impute:{}, chosenTarget:null, chosenFeatures:[], task:'auto',
       mapTarget:null, invMapTarget:null, scaler:null, model:null, isClassification:false, splitRatio:0.8 };
     $('#ml-file').value=''; $('#ml-file-name').textContent='CSV 파일을 선택하거나 드롭하세요'; $('#ml-file-hint').textContent='';
@@ -665,14 +628,13 @@
     metricsBody.innerHTML=`<tr><td>—</td><td>CSV 업로드 후 실행</td></tr>`; cmDiv.innerHTML=''; vipBody.innerHTML=''; coefBody.innerHTML=''; previewBody.innerHTML='';
     nrowBadge.textContent='-'; ncolBadge.textContent='-'; ntestBadge.textContent='-'; thresWrap.style.display='none'; pWrap.style.display='none';
     cvHead.innerHTML=''; cvBody.innerHTML='';
-    gotoBtn.style.display='none';                 // 초기화 시 숨김
     log('대기');
   });
 
-  $('#ml-task').addEventListener('change', ()=> META.task = $('#ml-task').value);
+  document.getElementById('ml-task').addEventListener('change', ()=> META.task = $('#ml-task').value);
 
   /* ---------- train ---------- */
-  $('#ml-train').addEventListener('click', async ()=>{
+  document.getElementById('ml-train').addEventListener('click', async ()=>{
     try{
       if(!RAW) return;
       const rows=RAW.rows.slice();
@@ -762,15 +724,9 @@
       }
 
       log('완료'); pWrap.style.display='none';
-
-      /* ✅ 결과가 생성되면 오른쪽 세로 버튼 표시 */
-      gotoBtn.style.display='inline-flex';
-      gotoBtn.onclick = () => document.querySelector('#ml-results-card')?.scrollIntoView({behavior:'smooth', block:'start'});
-      // 최초 1회 자동 포커스 이동(UX): 프리뷰 근처로
-      document.querySelector('#ml-preview-anchor')?.scrollIntoView({behavior:'smooth', block:'start'});
+      /* ✅ 자동 스크롤 없음: 사용자가 직접 오른쪽 스크롤로 확인 */
     }catch(err){
       console.error(err); log('오류: ' + (err?.message || err)); pWrap.style.display='none';
-      gotoBtn.style.display='none';
     }
   });
 
