@@ -1,4 +1,4 @@
-<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (스크롤바 가시성↑ · TOP 버튼 단일화) -->
+<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (버그픽스: bootstrap 계수·회귀 프리뷰·스크롤) -->
 <!doctype html>
 <html lang="ko">
 <head>
@@ -55,15 +55,14 @@
   @media (max-width:1100px){ .ml .results-grid{grid-template-columns:1fr 1fr} }
   @media (max-width:760px){ .ml .results-grid{grid-template-columns:1fr} }
 
-  /* 표: 내부 스크롤 (세로/가로) — 가시성 강화 */
+  /* 표: 내부 스크롤 (세로/가로) */
   .ml .table-wrap{
     border:1px solid #e9eef5; border-radius:14px;
     overflow:auto;
     max-height:360px;
     -webkit-overflow-scrolling:touch;
-    /* Firefox */
     scrollbar-width:auto;
-    scrollbar-color:#94a3b8 #e2e8f0; /* thumb track */
+    scrollbar-color:#94a3b8 #e2e8f0;
   }
   .ml table{width:100%; border-collapse:separate; border-spacing:0; font-size:14px; min-width:560px}
   .ml thead th{background:#f8fafc;color:#2b3345;font-weight:800;text-align:left;padding:10px;border-bottom:1px solid #e9eef5}
@@ -246,7 +245,6 @@
             <tbody id="ml-preview"></tbody>
           </table>
         </div>
-        <!-- ❌ 내부 상단 버튼 삭제 (중복 방지) -->
       </div>
     </div>
   </div>
@@ -292,13 +290,13 @@
       res.push(cur); return res;
     };
     const headers = split(lines[0]).map(h => h.trim());
-    theRows = [];
+    const rows = [];
     for (let i=1;i<lines.length;i++){
       const row = split(lines[i]); const obj = {};
       headers.forEach((h,idx)=> obj[h] = row[idx] ?? '');
-      theRows.push(obj);
+      rows.push(obj);
     }
-    return { headers, rows: theRows };
+    return { headers, rows };
   }
   const isNumericArray = (arr)=> {
     let num=0, ne=0; for (const v of arr){ if (v===''||v==null) continue; ne++; if (!isNaN(parseFloat(v))) num++; }
@@ -490,6 +488,43 @@
     }
   }
 
+  /* ---------- 부트스트랩: 계수(로지스틱/OLS) ---------- */
+  function bootstrapCoefLogit(X, y, p, B=200){
+    const n = X.length;
+    const W = Array.from({length:B}, ()=>Array(p).fill(0));
+    for(let b=0;b<B;b++){
+      const idx = Array.from({length:n}, ()=> Math.floor(Math.random()*n));
+      const Xb = idx.map(i=>X[i]);
+      const yb = idx.map(i=>y[i]);
+      const m = fitLogistic(Xb, yb, 200, 0.08, 1e-4);
+      for(let j=0;j<p;j++) W[b][j] = m.w[j] || 0;
+    }
+    const se = Array(p).fill(0), z = Array(p).fill(NaN), pval = Array(p).fill(NaN);
+    for(let j=0;j<p;j++){
+      const col = W.map(r=>r[j]);
+      se[j] = sd(col) || NaN;
+    }
+    return { se, z, p:pval };
+  }
+
+  function bootstrapCoefOLS(X, y, p, B=200){
+    const n = X.length;
+    const W = Array.from({length:B}, ()=>Array(p).fill(0));
+    for(let b=0;b<B;b++){
+      const idx = Array.from({length:n}, ()=> Math.floor(Math.random()*n));
+      const Xb = idx.map(i=>X[i]);
+      const yb = idx.map(i=>y[i]);
+      const m = fitLinear(Xb, yb, 200, 0.05, 1e-4);
+      for(let j=0;j<p;j++) W[b][j] = m.w[j] || 0;
+    }
+    const se = Array(p).fill(0);
+    for(let j=0;j<p;j++){
+      const col = W.map(r=>r[j]);
+      se[j] = sd(col) || NaN;
+    }
+    return { se, z:Array(p).fill(NaN), p:Array(p).fill(NaN) };
+  }
+
   /* ---------- state & DOM ---------- */
   let RAW=null;
   let META={ headers:[], numericCols:[], catCols:[], impute:{}, chosenTarget:null, chosenFeatures:[], task:'auto',
@@ -666,7 +701,10 @@
         // AUC CI
         log('AUC CI 계산…'); pText.textContent='AUC CI (bootstrap)';
         const aucCI = bootstrapAucCI(yte, prob, B_AUC, 0.05);
-        appendAucCIToMetrics(aucCI);
+        (function appendAucCIToMetrics(ci){
+          const tb = document.getElementById('ml-metrics');
+          tb.innerHTML += `<tr><td>AUC 95% CI (B=${ci.B})</td><td>[${ci.lo.toFixed(4)}, ${ci.hi.toFixed(4)}]</td></tr>`;
+        })(aucCI);
 
         // Coef bootstrap
         log('계수 부트스트랩…'); pText.textContent='Coef bootstrap';
@@ -681,7 +719,10 @@
 
         // 클래스 비율
         const posRate = (y.reduce((a,b)=>a+(b===1?1:0),0)/Math.max(1,y.length));
-        addMetricRow('Positive Rate', posRate.toFixed(4));
+        (function addMetricRow(name, val){
+          const tb = document.getElementById('ml-metrics');
+          tb.innerHTML += `<tr><td>${escapeHtml(name)}</td><td>${escapeHtml(val)}</td></tr>`;
+        })('Positive Rate', posRate.toFixed(4));
       }else{
         log('회귀 학습 중…'); pText.textContent=`회귀 반복`;
         const model = fitLinear(Xtr, ytr, iterations, 0.05, 1e-4, (it)=> pText.textContent=`회귀 반복 ${it}/${iterations}`);
@@ -705,15 +746,6 @@
   });
 
   /* ---------- render helpers ---------- */
-  function addMetricRow(name, val){
-    const tb = document.getElementById('ml-metrics');
-    tb.innerHTML += `<tr><td>${escapeHtml(name)}</td><td>${escapeHtml(val)}</td></tr>`;
-  }
-  function appendAucCIToMetrics(ci){
-    const tb = document.getElementById('ml-metrics');
-    tb.innerHTML += `<tr><td>AUC 95% CI (B=${ci.B})</td><td>[${ci.lo.toFixed(4)}, ${ci.hi.toFixed(4)}]</td></tr>`;
-  }
-
   function applyClassificationOutputs(yTrue, yProb, thr=0.5, extra){
     const { tp,tn,fp,fn,acc,prec,rec,f1,yPred } = binMetrics(yTrue,yProb,thr);
     const { auc } = computeROC(yTrue, yProb);
@@ -787,6 +819,20 @@
       <tr><td>MSE</td><td>${_mse.toFixed(6)}</td></tr>
       <tr><td>R²</td><td>${r2.toFixed(6)}</td></tr>`;
     document.getElementById('ml-cm').innerHTML = `<div class="sub" style="grid-column:1/-1">회귀문제는 혼동행렬이 적용되지 않습니다.</div>`;
+  }
+
+  function renderPreviewRegression(yTrue, yPred, features){
+    const topNames = features.slice(0,3).join(', ');
+    const rows = [];
+    for (let i=0;i<yTrue.length;i++){
+      rows.push(`<tr>
+        <td>${(yTrue[i]??'').toString()}</td>
+        <td>${(yPred[i]??0).toFixed(6)}</td>
+        <td>—</td>
+        <td>${escapeHtml(topNames)}</td>
+      </tr>`);
+    }
+    document.getElementById('ml-preview').innerHTML = rows.join('') || `<tr><td colspan="4">-</td></tr>`;
   }
 
   function renderCV(cv, isCls){
