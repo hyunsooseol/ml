@@ -716,6 +716,7 @@
         thresWrap.style.display='none';
         renderRegMetrics(yte, pred);
         renderPreviewRegression(yte, pred, features);
+        renderVIP(features, model.w);
 
         // Coef bootstrap
         log('계수 부트스트랩…'); pText.textContent='Coef bootstrap';
@@ -841,4 +842,5 @@
 
 </body>
 </html>
+
 
