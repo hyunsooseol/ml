@@ -1,4 +1,4 @@
-<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (MLP 통합 완전 버전) -->
+<!-- ✅ SNOWSOFT | 간편 머신러닝 분석 (MLP 통합 · 업로더 안전모드) -->
 <!doctype html>
 <html lang="ko">
 <head>
@@ -29,11 +29,11 @@
   .ml .btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(0,0,0,.08)}
   .ml .btn.primary{color:#fff;background:linear-gradient(90deg,#0f2e59,#174a8c);border:none}
   .ml .btn.ghost{background:#fff;border-color:#e2e8f0}
-  .ml .btn.ghost:hover{box-shadow:0 6px 16px rgba(2,6,23,.06)}
 
   .ml .uploader{
     position:relative;border:1px dashed #cbd5e1;border-radius:14px;background:#fafcff;padding:14px 16px;
-    display:flex;align-items:center;justify-content:space-between;gap:12px
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    z-index:10;
   }
   .ml .uploader-left{display:flex;align-items:center;gap:10px}
   .ml .uploader-icon{
@@ -42,7 +42,18 @@
   }
   .ml .uploader strong{font-weight:800}
   .ml .uploader small{color:#64748b}
+  .ml .uploader .btn{ position:relative; z-index:11; pointer-events:auto; }
 
+  /* 파일 입력: DOM에 존재시키되 화면 밖으로 이동 (programmatic click 이슈 회피) */
+  #ml-file{
+    position:absolute;
+    left:-9999px; top:auto;
+    width:1px; height:1px;
+    overflow:hidden;
+    opacity:0;
+  }
+
+  /* 패널/그리드 */
   .ml .panel{border:1px solid var(--br);border-radius:14px;padding:14px;min-width:0;min-height:0;display:flex;flex-direction:column}
   .ml .results{margin-top:18px}
   .ml .results-grid{
@@ -54,6 +65,7 @@
   @media (max-width:1100px){ .ml .results-grid{grid-template-columns:1fr 1fr} }
   @media (max-width:760px){ .ml .results-grid{grid-template-columns:1fr} }
 
+  /* 표: 내부 스크롤(세로/가로) */
   .ml .table-wrap{
     border:1px solid #e9eef5; border-radius:14px;
     overflow:auto;
@@ -99,8 +111,10 @@
           <small id="ml-file-hint"></small>
         </div>
       </div>
-      <button type="button" class="btn ghost" id="ml-choose">파일 선택</button>
-      <input id="ml-file" type="file" accept=".csv,text/csv" style="display:none" />
+
+      <!-- ✅ label-for 방식: 클릭 즉시 파일 창 -->
+      <label for="ml-file" class="btn ghost" id="ml-choose" role="button" tabindex="0">파일 선택</label>
+      <input id="ml-file" type="file" accept=".csv,text/csv" />
     </div>
 
     <div class="log" id="ml-log">상태: 대기</div>
@@ -116,8 +130,6 @@
               <option value="reg">Regression</option>
             </select>
           </div>
-
-          <!-- ✅ 새로 추가: Model -->
           <div>
             <label>Model</label>
             <select id="ml-model">
@@ -125,7 +137,6 @@
               <option value="mlp">MLP (1 Hidden Layer)</option>
             </select>
           </div>
-
           <div><label>Iterations</label><input id="ml-epochs" type="number" value="30" min="1"></div>
         </div>
 
@@ -301,7 +312,7 @@
   };
   const toNumberOrNa = (v)=> (v===''||v==null)? NaN : (isNaN(+v)? NaN : +v);
   const median = (a)=>{ const b=a.filter(x=>!isNaN(x)).sort((x,y)=>x-y); if(!b.length) return NaN; const m=Math.floor(b.length/2); return b.length%2? b[m] : (b[m-1]+b[m])/2; };
-  const mode = (arr)=>{ const m=new Map(); for(const v of arr){ const k=(v===''||v==null)?'__NA__':String(v); m.set(k,(m.get(k)||0)+1); let best='__NA__',c=-1; m.forEach((n,k)=>{if(n>c){c=n;best=k;}}); return best==='__NA__'? '' : best; };
+  const mode = (arr)=>{ const m=new Map(); for(const v of arr){ const k=(v===''||v==null)?'__NA__':String(v); m.set(k,(m.get(k)||0)+1); } let best='__NA__',c=-1; m.forEach((n,k)=>{if(n>c){c=n;best=k;}}); return best==='__NA__'? '' : best; };
 
   /* ---------- split/scale ---------- */
   function trainTestSplit(X, y, testRatio=0.2, seed=42){
@@ -352,15 +363,9 @@
   }
 
   /* ---------- models: MLP (1 hidden layer, ReLU) ---------- */
-  function randn(){ // Box-Muller
-    let u=0,v=0; while(u===0) u=Math.random(); while(v===0) v=Math.random();
-    return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
-  }
-  function initMatrix(r,c,scale=0.1){
-    return Array.from({length:r},()=> Array.from({length:c},()=> randn()*scale));
-  }
-  function relu(x){ return x>0? x:0; }
-  function drelu(x){ return x>0? 1:0; }
+  function randn(){ let u=0,v=0; while(u===0) u=Math.random(); while(v===0) v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+  function initMatrix(r,c,scale=0.1){ return Array.from({length:r},()=> Array.from({length:c},()=> randn()*scale)); }
+  function relu(x){ return x>0? x:0; } function drelu(x){ return x>0? 1:0; }
 
   function fitMLPClass(X,y,iterations=300, lr=0.05, l2=1e-4, h=16, cb){
     const n=X.length, p=X[0].length;
@@ -377,14 +382,13 @@
     }
 
     for(let it=1; it<=iterations; it++){
-      // full-batch gradients
       const dW1 = initMatrix(p,h,0), db1=Array(h).fill(0);
       const dW2 = Array(h).fill(0); let db2=0;
 
       for(let i=0;i<n;i++){
         const x = X[i]; const t = y[i];
         const {z1,a1,z2,a2} = forward(x);
-        const dz2 = (a2 - t);                      // BCE derivative
+        const dz2 = (a2 - t);
         for(let k=0;k<h;k++){ dW2[k]+= dz2 * a1[k]; }
         db2 += dz2;
 
@@ -396,7 +400,6 @@
         for(let k=0;k<h;k++){ db1[k]+= dz1[k]; }
       }
 
-      // apply L2 and step
       for(let j=0;j<p;j++){
         for(let k=0;k<h;k++){ dW1[j][k] = dW1[j][k]/n + l2*W1[j][k]; W1[j][k] -= lr*dW1[j][k]; }
       }
@@ -418,7 +421,6 @@
     };
     const predict=(Z,thr=0.5)=> predictProba(Z).map(p=> p>=thr?1:0);
 
-    // variable importance for MLP (input→hidden→out path magnitude)
     function mlpImportance(){
       const imp = Array(p).fill(0);
       for(let j=0;j<p;j++){
@@ -441,7 +443,7 @@
       for(let k=0;k<h;k++){ let s=0; for(let j=0;j<p;j++) s+=x[j]*W1[j][k]; z1[k]=s+b1[k]; }
       const a1 = z1.map(relu);
       let z2=0; for(let k=0;k<h;k++) z2+=a1[k]*W2[k]; z2+=b2;
-      const a2 = z2; // linear
+      const a2 = z2;
       return {z1,a1,z2,a2};
     }
 
@@ -452,7 +454,7 @@
       for(let i=0;i<n;i++){
         const x = X[i]; const t = y[i];
         const {z1,a1,z2,a2} = forward(x);
-        const dz2 = (a2 - t); // dMSE/dz2 = (yhat - y)
+        const dz2 = (a2 - t);
         for(let k=0;k<h;k++){ dW2[k]+= dz2 * a1[k]; }
         db2 += dz2;
 
@@ -619,6 +621,7 @@
       }
     }
     for(let j=0;j<p;j++) XtX[j][j]+=l2;
+
     const A = XtX.map(row=>row.slice()); const b = Xty.slice();
     for(let i=0;i<p;i++){
       let max=i; for(let r=i+1;r<p;r++) if(Math.abs(A[r][i])>Math.abs(A[max][i])) max=r;
@@ -683,7 +686,6 @@
     mapTarget:null, invMapTarget:null, scaler:null, model:null, isClassification:false, splitRatio:0.8, modelType:'auto' };
 
   const fInput = $('#ml-file');
-  const chooseBtn = $('#ml-choose');
   const targetSel = $('#ml-target');
   const predsWrap = $('#ml-preds');
   const splitRange = $('#ml-split');
@@ -708,18 +710,20 @@
   const cvHead = $('#ml-cv-head');
   const cvBody = $('#ml-cv-body');
 
-  $('#ml-choose').addEventListener('click', ()=> fInput.click());
-  $('#ml-drop').addEventListener('dragover', (e)=> e.preventDefault());
-  $('#ml-drop').addEventListener('drop', (e)=>{
+  // Drag & Drop
+  const drop = document.getElementById('ml-drop');
+  drop.addEventListener('dragover', (e)=> e.preventDefault());
+  drop.addEventListener('drop', (e)=>{
     e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files[0]){ fInput.files=e.dataTransfer.files; handleFile(); }
   });
+  // 파일 변경
   fInput.addEventListener('change', handleFile);
 
   function handleFile(){
     const file = fInput.files && fInput.files[0]; if(!file) return;
-    $('#ml-file-name').textContent = file.name;
-    $('#ml-file-hint').textContent = `${(file.size/1024).toFixed(1)} KB`;
+    document.getElementById('ml-file-name').textContent = file.name;
+    document.getElementById('ml-file-hint').textContent = `${(file.size/1024).toFixed(1)} KB`;
     const reader = new FileReader();
     reader.onload = ()=>{
       try{
@@ -775,8 +779,8 @@
   function updateSplitLabel(){ const v=Number(splitRange.value); splitLabel.textContent=`${v}%`; META.splitRatio=v/100; }
   splitRange.addEventListener('input', updateSplitLabel);
 
-  document.getElementById('ml-task').addEventListener('change', ()=> META.task = $('#ml-task').value);
-  document.getElementById('ml-model').addEventListener('change', ()=> META.modelType = $('#ml-model').value);
+  document.getElementById('ml-task').addEventListener('change', ()=> META.task = document.getElementById('ml-task').value);
+  document.getElementById('ml-model').addEventListener('change', ()=> META.modelType = document.getElementById('ml-model').value);
 
   thresInput.addEventListener('input', ()=>{
     const thr = Number(thresInput.value)/100;
@@ -787,7 +791,7 @@
   document.getElementById('ml-clear').addEventListener('click', ()=>{
     RAW=null; META={ headers:[], numericCols:[], catCols:[], impute:{}, chosenTarget:null, chosenFeatures:[], task:'auto',
       mapTarget:null, invMapTarget:null, scaler:null, model:null, isClassification:false, splitRatio:0.8, modelType:'auto' };
-    $('#ml-file').value=''; $('#ml-file-name').textContent='CSV 파일을 선택하거나 드롭하세요'; $('#ml-file-hint').textContent='';
+    document.getElementById('ml-file').value=''; document.getElementById('ml-file-name').textContent='CSV 파일을 선택하거나 드롭하세요'; document.getElementById('ml-file-hint').textContent='';
     targetSel.innerHTML=''; predsWrap.innerHTML='';
     metricsBody.innerHTML=`<tr><td>—</td><td>CSV 업로드 후 실행</td></tr>`; cmDiv.innerHTML=''; vipBody.innerHTML=''; coefBody.innerHTML=''; previewBody.innerHTML='';
     nrowBadge.textContent='-'; ncolBadge.textContent='-'; ntestBadge.textContent='-'; thresWrap.style.display='none'; pWrap.style.display='none';
@@ -831,7 +835,7 @@
 
       // CV (model aware)
       log('교차검증 중…'); pText.textContent='5-Fold CV';
-      const cv = cvEvaluate(Xs, y, isClassification?'bincls':'reg', 5, META.modelType, (parseInt($('#ml-epochs').value,10)||30));
+      const cv = cvEvaluate(Xs, y, isClassification?'bincls':'reg', 5, META.modelType, (parseInt(document.getElementById('ml-epochs').value,10)||30));
       renderCV(cv, isClassification);
 
       // Hold-out split
@@ -840,7 +844,6 @@
 
       META.isClassification = isClassification;
       const iterations = Math.max(20, Math.min(2000, parseInt(document.getElementById('ml-epochs').value||0,10)||30));
-
       const usingMLP = (META.modelType==='mlp');
 
       if (isClassification){
@@ -865,8 +868,13 @@
         if (usingMLP){
           const imp = model.mlpImportance();
           renderVIPfromVector(features, imp);
+          renderCoefDisabled();
         }else{
           renderVIP(features, model.w);
+          // Coef bootstrap
+          log('계수 부트스트랩…'); pText.textContent='Coef bootstrap';
+          const coefBoot = bootstrapCoefLogit(Xtr, ytr, features.length, B_COEF);
+          renderCoef(features, model.w, coefBoot.se, coefBoot.z, coefBoot.p);
         }
 
         // AUC CI
@@ -874,15 +882,6 @@
         const aucCI = bootstrapAucCI(yte, prob, B_AUC, 0.05);
         const tb = document.getElementById('ml-metrics');
         tb.innerHTML += `<tr><td>AUC 95% CI (B=${aucCI.B})</td><td>[${aucCI.lo.toFixed(4)}, ${aucCI.hi.toFixed(4)}]</td></tr>`;
-
-        // Coef table
-        if (usingMLP){
-          renderCoefDisabled();
-        }else{
-          log('계수 부트스트랩…'); pText.textContent='Coef bootstrap';
-          const coefBoot = bootstrapCoefLogit(Xtr, ytr, features.length, B_COEF);
-          renderCoef(features, model.w, coefBoot.se, coefBoot.z, coefBoot.p);
-        }
 
         // 추천 임곗값
         const rc = computeROC(yte, prob);
@@ -902,27 +901,22 @@
         if (usingMLP){
           model = fitMLPReg(Xtr, ytr, iterations, 0.05, 1e-4, 16, (it)=> pText.textContent=`MLP 반복 ${it}/${iterations}`);
           pred = model.predict(Xte);
+          const imp = model.mlpImportance();
+          renderVIPfromVector(features, imp);
+          renderCoefDisabled();
         }else{
           model = fitLinear(Xtr, ytr, iterations, 0.05, 1e-4, (it)=> pText.textContent=`회귀 반복 ${it}/${iterations}`);
           pred = model.predict(Xte);
+          renderVIP(features, model.w);
+          log('계수 부트스트랩…'); pText.textContent='Coef bootstrap';
+          const coefBoot = bootstrapCoefOLS(Xtr, ytr, features.length, B_COEF);
+          renderCoef(features, model.w, coefBoot.se, coefBoot.z, coefBoot.p);
         }
 
         META.model=model; META.scaler=scaler;
         thresWrap.style.display='none';
         renderRegMetrics(yte, pred);
         renderPreviewRegression(yte, pred, features);
-
-        // VIP
-        if (usingMLP){
-          const imp = model.mlpImportance();
-          renderVIPfromVector(features, imp);
-          renderCoefDisabled();
-        }else{
-          renderVIP(features, model.w);
-          log('계수 부트스트랩…'); pText.textContent='Coef bootstrap';
-          const coefBoot = bootstrapCoefOLS(Xtr, ytr, features.length, B_COEF);
-          renderCoef(features, model.w, coefBoot.se, coefBoot.z, coefBoot.p);
-        }
       }
 
       log('완료'); pWrap.style.display='none';
